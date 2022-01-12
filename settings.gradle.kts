@@ -1,2 +1,2 @@
-rootProject.name = "valimon"
+rootProject.name = "whitebear"
 
