@@ -19,14 +19,16 @@ Here is a valid piece of data:
 
 ```kotlin
 val validAge: Validated<Int, String> = valid(16)
-
-val invalidAge: Validate<Int, String> = invalid("16 is too young")
 ```
 
-To enforce some age limit, you can get from one to the other by:
+To enforce some age limit, you can go:
 
 ```kotlin
 val beerAge = validAge validateThat { it >= 18 } elseInvalid { "$it is too young"}
+```
+Another way to get the same result:
+```
+val invalidAge: Validate<Int, String> = invalid("16 is too young")
 ```
 Then map it to a legal birth year:
 ```kotlin
@@ -82,3 +84,4 @@ return result validValueOr { messages ->
     throw IllegalArgumentException("Invalid data: ${messages.joinToString(", ")}")    
 }
 ```
+This is a work in progress and is currently in the ideas-gathering/gelling stage.
