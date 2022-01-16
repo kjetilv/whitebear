@@ -1,4 +1,5 @@
 import com.github.kjetilv.whitebear.Validated
+import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validated
 
 const val name = "Kjetil"
@@ -12,9 +13,10 @@ internal val String.isNumeric get() = chars().allMatch(Character::isDigit)
 internal val Int.realisticAge get() = this in 0..120
 internal val Person.licensedOk get() = age >= 18 || driversLicense == null
 
-internal fun personX(name: String, age: Int, license: String?): Validated<Person, PersonIssue> {
-    return validated {
+val personIssues = failureList<PersonIssue>()
 
+internal fun personX(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+    validated(personIssues) {
         valid(name) map { it.trim() } validateThat {
             it.startsUppercased
         } elseInvalid {
@@ -41,10 +43,9 @@ internal fun personX(name: String, age: Int, license: String?): Validated<Person
             TheBadness("Person validation failed")
         }
     }
-}
 
-internal fun person0(name: String, age: Int, license: String?): Validated<Person, PersonIssue> =
-    validated {
+internal fun person0(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+    validated(personIssues) {
 
         val inputValidations =
             collect(
@@ -82,8 +83,8 @@ internal fun person0(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person1(name: String, age: Int, license: String?): Validated<Person, PersonIssue> =
-    validated {
+internal fun person1(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+    validated(personIssues) {
 
         val validName = validateThat(name) {
             it.startsUppercased
@@ -91,7 +92,7 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
             BadName("Name must start with uppercase: $it")
         }
 
-        val validAge: Validated<Int, PersonIssue> = validateThat(age) {
+        val validAge: Validated<Int, List<PersonIssue>> = validateThat(age) {
             it.realisticAge
         } elseInvalid {
             BadAge("Invalid age: $it")
@@ -114,8 +115,8 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person1a(name: String, age: Int, license: String?): Validated<Person, PersonIssue> =
-    validated {
+internal fun person1a(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+    validated(personIssues) {
 
         val validatedPerson = (validateThat(name) {
             it.startsUppercased
@@ -143,8 +144,8 @@ internal fun person1a(name: String, age: Int, license: String?): Validated<Perso
         }
     }
 
-internal fun person2(name: String, age: Int, license: String?): Validated<Person, PersonIssue> {
-    return validated {
+internal fun person2(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
+    return validated(personIssues) {
 
         validateThat(name) {
             it.startsUppercased
@@ -172,8 +173,8 @@ internal fun person2(name: String, age: Int, license: String?): Validated<Person
     }
 }
 
-internal fun person3(name: String, age: Int, license: String?): Validated<Person, PersonIssue> {
-    return validated<Any, PersonIssue> {
+internal fun person3(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+    validated(personIssues) {
 
         val nameVal = validateThat(name) {
             it.startsUppercased
@@ -193,24 +194,20 @@ internal fun person3(name: String, age: Int, license: String?): Validated<Person
             BadLicense("Bad license: $it")
         }
 
-        collect(nameVal, ageVal, licVal)
-
-    } ifValid {
-        validated {
-            valid(Person(name, age, license)) validateThat {
+        collect(nameVal, ageVal, licVal) ifValid {
+            validateThat(Person(name, age, license)) {
                 it.licensedOk
             } elseInvalid {
                 BadCombo("Too young to drive: $it")
             }
+        } annotateInvalid {
+            TheBadness("Person validation failed")
         }
-    } annotateInvalid {
-        TheBadness("Person validation failed")
     }
-}
 
-internal fun person4(name: String, age: Int, license: String?): Validated<Person, PersonIssue> {
-    return validated<Any, PersonIssue> {
-        collectToT(
+internal fun person4(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
+    return validated(personIssues) {
+        collect(
             validateThat(name) {
                 it.startsUppercased
             } elseInvalid {
@@ -225,16 +222,15 @@ internal fun person4(name: String, age: Int, license: String?): Validated<Person
                 it?.isNumeric
             } elseInvalid {
                 BadLicense("Bad license: $it")
-            })
-    } ifValid {
-        validated {
-            valid(Person(name, age, license)) validateThat {
+            }
+        ) ifValid {
+            validateThat(Person(name, age, license)) {
                 it.licensedOk
             } elseInvalid {
                 BadCombo("Too young to drive: $it")
             }
+        } annotateInvalid {
+            TheBadness("Person validation failed")
         }
-    } annotateInvalid {
-        TheBadness("Person validation failed")
     }
 }

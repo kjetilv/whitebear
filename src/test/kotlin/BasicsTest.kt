@@ -1,98 +1,118 @@
 import com.github.kjetilv.whitebear.Validated
-import com.github.kjetilv.whitebear.collectToT
+import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validated
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
+internal val strings = failureList<String>()
+
 class BasicsTest {
 
-    private fun invalidMap(): Validated<String, String> = validated {
-        valid("str") map { it + "str" } validateThat { false } elseInvalid { "Oops" }
+    private fun invalidMap(error: String): Validated<String, List<String>> = validated(strings) {
+        valid("str") map { it + "str" } validateThat { false } elseInvalid { error }
     }
 
-    private fun validMap(): Validated<String, String> = validated {
-        valid("str") map { it + "str" } validateThat { true } elseInvalid { "Oops" }
+    private fun validMap(error: String): Validated<String, List<String>> = validated(strings) {
+        valid("str") map { it + "str" } validateThat { true } elseInvalid { error }
     }
 
-    private fun invalidFlat(): Validated<String, String> = validated {
-        valid("str") flatMap { valid(it + "str") } validateThat { false } elseInvalid { "Oops flat" }
+    private fun invalidFlat(error: String): Validated<String, List<String>> = validated(strings) {
+        valid("str") flatMap { valid(it + "str") } validateThat { false } elseInvalid { error }
     }
 
-    private fun validFlat(): Validated<String, String> = validated {
-        valid("str") flatMap { valid(it + "str") } validateThat { true } elseInvalid { "Oops flat" }
+    private fun validFlat(error: String): Validated<String, List<String>> = validated(strings) {
+        valid("str") flatMap { valid(it + "str") } validateThat { true } elseInvalid { error }
     }
 
     @Test
     fun map() {
-        assertThat(invalidMap().valid).isFalse
-        assertThat(invalidMap().errors).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops") })
+        assertThat(invalidMap("Oops").valid).isFalse
+        assertThat(invalidMap("Oops").error).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops") })
     }
 
     @Test
     fun flatMap() {
-        assertThat(invalidFlat().valid).isFalse
-        assertThat(invalidFlat().errors).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops flat") })
+        assertThat(invalidFlat("Oops flat").valid).isFalse
+        assertThat(invalidFlat("Oops flat").error).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops flat") })
     }
 
     @Test
     fun collectErrorsInvalis() {
-        val errors = collectToT<String, String>(invalidMap(), invalidFlat())
+        val errors: Validated<Any, List<String>> = validated(strings) {
+            collect(invalidMap("0"), invalidFlat("1"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(2)
+            .anyMatch { it == "0" }
+            .anyMatch { it == "1" }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids0() {
-        val errors = collectToT<String, String>(validMap(), invalidMap(), invalidFlat())
+        val errors = validated(strings) {
+            collect(validMap("0"), invalidMap("1"), invalidFlat("2"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(2)
+            .anyMatch { it == "1" }
+            .anyMatch { it == "2" }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids1() {
-        val errors = collectToT<String, String>(invalidMap(), validMap(), invalidFlat())
+        val errors = validated(strings) {
+            collect(invalidMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids2() {
-        val errors = collectToT<String, String>(invalidMap(), invalidFlat(), validMap())
+        val errors = validated(strings) {
+            collect(invalidMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids01() {
-        val errors = collectToT<String, String>(validMap(), validMap(), invalidFlat())
+        val errors = validated(strings) {
+            collect(validMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(1).anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids12() {
-        val errors = collectToT<String, String>(invalidMap(), validMap(), validMap())
+        val errors = validated(strings) {
+            collect(invalidMap("Oops"), validMap("Oops"), validMap("Oops"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(1).anyMatch { "Oops" == it }
+        assertThat(errors.error).hasSize(1).anyMatch { "Oops" == it }
     }
 
     @Test
     fun collectErrorsInvalidsAndValids02() {
-        val errors = collectToT<String, String>(validMap(), invalidFlat(), validMap())
+        val errors = validated(strings) {
+            collect(validMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
+        }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(1).anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
     }
 
     @Test
     fun zipValids() {
-        val validated = validMap() zipWith validFlat() map { s1, s2 -> s1 + s2 }
+        val validated = validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
         assertThat(validated.valid).isTrue
         assertThat(validated.value).isEqualTo("strstr" + "strstr")
@@ -100,7 +120,7 @@ class BasicsTest {
 
     @Test
     fun zipZipValids() {
-        val validated = validMap() zipWith validMap() zipWith validFlat() map { s1, s2, s3 -> s1 + s2 + s3 }
+        val validated = validMap("Oops") zipWith validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertThat(validated.valid).isTrue
         assertThat(validated.value).isEqualTo("strstr" + "strstr" + "strstr")
@@ -108,41 +128,71 @@ class BasicsTest {
 
     @Test
     fun zipInvalids() {
-        val errors = validMap() zipWith invalidFlat() map { s1, s2 -> s1 + s2 }
+        val errors = validMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(1).anyMatch { "Oops flat" == it }
+        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
+    }
+
+    @Test
+    fun zipBothInvalids() {
+        val errors = invalidMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
+
+        assertThat(errors.valid).isFalse
+        assertThat(errors.error).hasSize(2)
+            .anyMatch { "Oops flat" == it }
+            .anyMatch { "Oops" == it }
     }
 
     @Test
     fun zipZipInvalids02() {
-        val errors = invalidFlat() zipWith validFlat() zipWith invalidMap() map { s1, s2, s3 -> s1 + s2 + s3 }
+        val errors = invalidFlat("Oops flat") zipWith validFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
     }
 
     @Test
     fun zipZipInvalids01() {
-        val errors = invalidFlat() zipWith invalidMap() zipWith validFlat() map { s1, s2, s3 -> s1 + s2 + s3 }
+        val errors =
+            (invalidFlat("Oops flat") zipWith invalidMap("Oops") zipWith validFlat("Oops flat")) map { s1, s2, s3 ->
+                s1 + s2 + s3
+            }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+
+        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
     }
 
     @Test
     fun zipZipInvalids12() {
-        val errors = validMap() zipWith invalidFlat() zipWith invalidMap() map { s1, s2, s3 -> s1 + s2 + s3 }
+        val errors = validMap("Oops") zipWith invalidFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+    }
+
+    @Test
+    fun zipZipInvalids012() {
+        val zipper1 = invalidMap("0") zipWith invalidFlat("1")
+        val zipper2 = zipper1 zipWith invalidMap("2")
+        val errors =
+            zipper2 map { s1, s2, s3 ->
+                s1 + s2 + s3
+            }
+
+        assertThat(errors.valid).isFalse
+        assertThat(errors.error).hasSize(3)
+            .anyMatch { it == "0" }
+            .anyMatch { it == "1" }
+            .anyMatch { it == "2" }
     }
 
     @Test
     fun zipInvalidsFlip() {
-        val errors = invalidMap() zipWith validFlat() map { s1, s2 -> s1 + s2 }
+        val errors = invalidMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
         assertThat(errors.valid).isFalse
-        assertThat(errors.errors).hasSize(1).anyMatch { "Oops" == it }
+        assertThat(errors.error).hasSize(1).anyMatch { "Oops" == it }
     }
 }

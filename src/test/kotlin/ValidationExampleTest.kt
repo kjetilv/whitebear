@@ -1,12 +1,11 @@
-import com.github.kjetilv.whitebear.Invalid
-import com.github.kjetilv.whitebear.Valid
 import com.github.kjetilv.whitebear.Validated
+import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validated
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
-abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> Validated<Person, PersonIssue>) {
+abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> Validated<Person, List<PersonIssue>>) {
 
     @Test
     fun `good person`() {
@@ -18,7 +17,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad name`() {
         val badNamePerson = create(nameX, age, license)
         assertFalse(badNamePerson.valid)
-        assertThat(badNamePerson.errors).hasSize(2)
+        assertThat(badNamePerson.error).hasSize(2)
             .anyMatch { it is BadName }
             .anyMatch { it is TheBadness }
     }
@@ -27,7 +26,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad name, age`() {
         val badNameAgePerson = create(nameX, ageX, license)
         assertFalse(badNameAgePerson.valid)
-        assertThat(badNameAgePerson.errors).hasSize(3)
+        assertThat(badNameAgePerson.error).hasSize(3)
             .anyMatch { it is BadName }
             .anyMatch { it is BadAge }
             .anyMatch { it is TheBadness }
@@ -37,7 +36,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad name, license`() {
         val badNameLicensePerson = create(nameX, age, licenseX)
         assertFalse(badNameLicensePerson.valid)
-        assertThat(badNameLicensePerson.errors).hasSize(3)
+        assertThat(badNameLicensePerson.error).hasSize(3)
             .anyMatch { it is BadName }
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
@@ -47,7 +46,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad age`() {
         val badAgePerson = create(name, ageX, license)
         assertFalse(badAgePerson.valid)
-        assertThat(badAgePerson.errors).hasSize(2)
+        assertThat(badAgePerson.error).hasSize(2)
             .anyMatch { it is BadAge }
             .anyMatch { it is TheBadness }
     }
@@ -56,7 +55,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad age, license`() {
         val badAgeLicensePerson = create(name, ageX, licenseX)
         assertFalse(badAgeLicensePerson.valid)
-        assertThat(badAgeLicensePerson.errors).hasSize(3)
+        assertThat(badAgeLicensePerson.error).hasSize(3)
             .anyMatch { it is BadAge }
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
@@ -66,7 +65,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad license`() {
         val badLicensePerson = create(name, age, licenseX)
         assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.errors).hasSize(2)
+        assertThat(badLicensePerson.error).hasSize(2)
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
     }
@@ -75,7 +74,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad state bad`() {
         val badLicensePerson = create(name, 16, license)
         assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.errors).hasSize(2)
+        assertThat(badLicensePerson.error).hasSize(2)
             .anyMatch { it is BadCombo }
             .anyMatch { it is TheBadness }
     }
@@ -84,7 +83,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `all bad`() {
         val badPerson = create(nameX, ageX, licenseX)
         assertFalse(badPerson.valid)
-        assertThat(badPerson.errors).hasSize(4)
+        assertThat(badPerson.error).hasSize(4)
             .anyMatch { it is BadName }
             .anyMatch { it is BadAge }
             .anyMatch { it is BadLicense }
@@ -136,40 +135,49 @@ class RestResrouce {
 
     private val serviceLayer = ServiceLayer()
 
-    fun hello(world: String, greeting: String): String {
-        return serviceLayer.greet(world, greeting) annotateInvalid {
-            "REST layer failed: $world/$greeting "
-        } validValueOr { errors ->
-            throw IllegalStateException("Failed to greet: ${errors.joinToString(" => ") { it.trim() }}")
+    fun hello(world: String, greeting: String): String =
+        validated(failureList<String>()) {
+            serviceLayer.greet(world, greeting) annotateInvalid {
+                "REST layer failed: $world/$greeting "
+            } validValueOr { errors ->
+                throw IllegalStateException("Failed to greet: ${errors.joinToString(" => ") { it.trim() }}")
+            }
         }
-    }
 }
 
 class ServiceLayer {
 
     fun greet(world: String, greeting: String) =
-        getWorld(world)
-            .flatMap { it.accept(greeting) }
-            .validateThat { it != "ouch" }
-            .elseInvalid { "Not a good response: $it" }
-            .annotateInvalid { "World named $world and greeting $greeting was a no-go" }
+        validated(strings) {
+            getWorld(world) flatMap {
+                it.accept(greeting)
+            }  validateThat {
+                it != "ouch"
+            } elseInvalid {
+                "Not a good response: $it"
+            } annotateInvalid {
+                "World named $world and greeting $greeting was a no-go"
+            }
+        }
 
-    private fun getWorld(world: String): Validated<Wrodl, String> =
-        when (world) {
-            "biz" -> Valid(Bizarro(1))
-            "col" -> Valid(Collider(2))
-            else -> Invalid("No world known as $world")
+    private fun getWorld(world: String): Validated<Wrodl, List<String>> =
+        validated(strings) {
+            when (world) {
+                "biz" -> valid(Bizarro(1))
+                "col" -> valid(Collider(2))
+                else -> invalid("No world known as $world")
+            }
         }
 }
 
 sealed class Wrodl {
 
-    abstract fun accept(greeting: String): Validated<String, String>
+    abstract fun accept(greeting: String): Validated<String, List<String>>
 }
 
 class Bizarro(private val x: Int) : Wrodl() {
-    override fun accept(greeting: String): Validated<String, String> =
-        validated {
+    override fun accept(greeting: String): Validated<String, List<String>> =
+        validated(strings) {
             when (greeting) {
                 "zib" -> valid("ok: $x")
                 "zibb" -> valid("ouch: $x")
@@ -181,8 +189,8 @@ class Bizarro(private val x: Int) : Wrodl() {
 }
 
 class Collider(private val y: Int) : Wrodl() {
-    override fun accept(greeting: String): Validated<String, String> =
-        validated {
+    override fun accept(greeting: String): Validated<String, List<String>> =
+        validated(strings) {
             when (greeting) {
                 "col" -> valid("ok: $y")
                 "coll" -> valid("ouch: $y")

@@ -2,115 +2,73 @@
 
 package com.github.kjetilv.whitebear
 
-fun <T, E> validated(action: ValidatorContext<E>.() -> Validated<T, E>): Validated<T, E> =
-    action(object : ValidatorContext<E> {})
+interface ErrorModel<F, E> {
 
-fun <T, E> valid(value: T): Validated<T, E> = Valid(value)
+    val empty: E
 
-fun <T, E> invalid(vararg error: E): Validated<T, E> = Invalid(error.toList())
+    infix fun isEmpty(e: E): Boolean
 
-fun <T, E> validateThat(value: T, test: (T) -> Boolean?) =
-    Valid<T, E>(value) validateThat test
+    fun combine(e1: E, e2: E): E
 
-fun <T, E> collectToT(
-    vararg validated: Validated<*, E>
-): Validated<T, E> =
-    validated.toList()
-        .flatMap { it.errors }
-        .takeIf { it.isNotEmpty() }
-        ?.let { Invalid(it) }
-        ?: JustValid()
+    fun add(e: E, c: F): E
 
-fun <T, R, E, V> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-    combiner: (T, R) -> V,
-): Validated<V, E> =
-    zip(v, v1) map combiner
+    infix fun str(es: E) = "$es"
+}
 
-fun <T, R, RR, E, V> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-    v2: Validated<RR, E>,
-    combiner: (T, R, RR) -> V,
-): Validated<V, E> =
-    zip(v, v1, v2) map combiner
+fun <F> failureList(str: (F) -> String = { "$it" }): ErrorModel<F, List<F>> = FailureList<F>(str)
 
-fun <T, R, RR, RRR, E, V> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-    v2: Validated<RR, E>,
-    v3: Validated<RRR, E>,
-    combiner: (T, R, RR, RRR) -> V,
-): Validated<V, E> =
-    zip(v, v1, v2, v3) map combiner
+fun <E, F, R> validated(
+    errorModel: ErrorModel<F, E>,
+    action: ValidatorContext<E, F>.() -> R,
+): R =
+    action(ErrorModelValidationContext(errorModel))
 
-fun <T, R, E> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-): Zipper1<T, R, E> =
-    v zipWith v1
+sealed interface ValidatorContext<E, F> {
 
-fun <T, R, RR, E> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-    v2: Validated<RR, E>,
-): Zipper2<T, R, RR, E> =
-    v zipWith v1 zipWith v2
+    fun <T> valid(value: T): Validated<T, E>
 
-fun <T, R, RR, RRR, E> zip(
-    v: Validated<T, E>,
-    v1: Validated<R, E>,
-    v2: Validated<RR, E>,
-    v3: Validated<RRR, E>,
-): Zipper3<T, R, RR, RRR, E> =
-    v zipWith v1 zipWith v2 zipWith v3
+    fun <T> invalid(vararg failures: F): Validated<T, E>
 
-interface ValidatorContext<E> {
+    fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, F>
 
-    fun <T> valid(value: T): Validated<T, E> =
-        valid<T, E>(value)
+    infix fun <T> Validated<T, E>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, F>
 
-    fun <T> invalid(vararg error: E): Validated<T, E> =
-        invalid<T, E>(*error)
+    fun collect(vararg validated: Validated<*, E>): Validated<Any, E>
 
-    fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E> =
-        validateThat<T, E>(value, test)
+    fun <T> collectToT(vararg validated: Validated<*, E>): Validated<T, E>
 
-    fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
-        collectToT(*validated)
-
-    fun <T> collectToT(vararg validated: Validated<*, E>): Validated<T, E> =
-        collectToT<T, E>(*validated)
-
-    fun <T, R, RR, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        combiner: (T, R, RR) -> V,
-    ): Validated<V, E> =
-        zip<T, R, RR, E, V>(v, v1, v2, combiner)
+    infix fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> F): Validated<T, E>
 
     fun <T, R> zip(
         v: Validated<T, E>,
         v1: Validated<R, E>,
-    ): Zipper1<T, R, E> =
-        zip<T, R, E>(v, v1)
+    ): Zipper1<T, R, E>
 
     fun <T, R, RR> zip(
         v: Validated<T, E>,
         v1: Validated<R, E>,
         v2: Validated<RR, E>,
-    ): Zipper2<T, R, RR, E> =
-        zip<T, R, RR, E>(v, v1, v2)
+    ): Zipper2<T, R, RR, E>
 
     fun <T, R, RR, RRR> zip(
         v: Validated<T, E>,
         v1: Validated<R, E>,
         v2: Validated<RR, E>,
         v3: Validated<RRR, E>,
-    ): Zipper3<T, R, RR, RRR, E> =
-        zip<T, R, RR, RRR, E>(v, v1, v2, v3)
+    ): Zipper3<T, R, RR, RRR, E>
+
+    fun <T, R, V> zip(
+        v: Validated<T, E>,
+        v1: Validated<R, E>,
+        combiner: (T, R) -> V,
+    ): Validated<V, E>
+
+    fun <T, R, RR, V> zip(
+        v: Validated<T, E>,
+        v1: Validated<R, E>,
+        v2: Validated<RR, E>,
+        combiner: (T, R, RR) -> V,
+    ): Validated<V, E>
 
     fun <T, R, RR, RRR, V> zip(
         v: Validated<T, E>,
@@ -118,17 +76,14 @@ interface ValidatorContext<E> {
         v2: Validated<RR, E>,
         v3: Validated<RRR, E>,
         combiner: (T, R, RR, RRR) -> V,
-    ): Validated<V, E> =
-        zip<T, R, RR, RRR, E, V>(v, v1, v2, v3, combiner)
+    ): Validated<V, E>
 }
 
 sealed interface Validated<T, E> {
 
     val value: T
 
-    val errors: Collection<E>
-
-    infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E>
+    val error: E
 
     infix fun <R> map(mapping: (T) -> R): Validated<R, E>
 
@@ -141,7 +96,7 @@ sealed interface Validated<T, E> {
 
     fun <R, RR> zipWith(
         validated1: Validated<R, E>,
-        validated2: Validated<RR, E>
+        validated2: Validated<RR, E>,
     ) =
         zipWith { validated1 } zipWith { validated2 }
 
@@ -162,25 +117,18 @@ sealed interface Validated<T, E> {
 
     infix fun <R> zipWith(validator: () -> Validated<R, E>): Zipper1<T, R, E>
 
-    infix fun annotateInvalid(errorProvider: () -> E) =
-        annotateInvalidMulti { listOf(errorProvider()) }
-
-    infix fun annotateInvalidMulti(errorProvider: () -> Collection<E>): Validated<T, E>
-
     infix fun <R> ifValid(validator: () -> Validated<R, E>): Validated<R, E>
 
-    infix fun validValueOr(errorsConsumer: (Collection<E>) -> Nothing): T
+    infix fun validValueOr(errorConsumer: (E) -> Nothing): T
 
     val valid: Boolean
 
     val invalid: Boolean
 }
 
-interface OrInvalidate<T, E> {
+interface OrInvalidate<T, E, F> {
 
-    infix fun elseInvalid(toErrors: (T) -> E): Validated<T, E>
-
-    infix fun elseInvalids(toErrors: (T) -> Collection<E>): Validated<T, E>
+    infix fun elseInvalid(toErrors: (T) -> F): Validated<T, E>
 }
 
 interface Zipper1<T, R, E> {
