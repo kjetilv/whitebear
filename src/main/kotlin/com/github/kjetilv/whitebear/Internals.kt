@@ -2,28 +2,28 @@
 
 package com.github.kjetilv.whitebear
 
-internal data class FailureList<F>(val str: (F) -> String = { "$it" }) : ErrorModel<F, List<F>> {
+internal data class FailureList<E>(val str: (E) -> String = { "$it" }) : ErrorModel<E, List<E>> {
 
     override val empty =
-        emptyList<F>()
+        emptyList<E>()
 
-    override fun isEmpty(e: List<F>) =
-        e.isEmpty()
+    override fun isEmpty(aggregator: List<E>) =
+        aggregator.isEmpty()
 
-    override fun add(e: List<F>, c: F): List<F> =
-        e + c
+    override fun add(aggregator: List<E>, error: E): List<E> =
+        aggregator + error
 
-    override fun combine(e1: List<F>, e2: List<F>) =
-        e1 + e2
+    override fun combine(aggregator1: List<E>, aggregator2: List<E>) =
+        aggregator1 + aggregator2
 
-    override fun str(es: List<F>): String =
-        es.map { str }.joinToString { ", " }
+    override fun str(aggregator: List<E>): String =
+        aggregator.map { str }.joinToString { ", " }
 }
 
 @Suppress("UNCHECKED_CAST")
-internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorModel<F, E>) : ValidatorContext<E, F> {
+internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorModel<E, A>) : ValidatorContext<A, E> {
 
-    internal fun flattenValidated(vals: List<Validated<*, E>>) =
+    internal fun flattenValidated(vals: List<Validated<*, A>>) =
         vals.map { it.error ?: errorModel.empty }
             .reduce { e1, e2 ->
                 errorModel.combine(e1, e2)
@@ -31,45 +31,45 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                 errorModel isEmpty it
             }
 
-    override fun <T> valid(value: T): Validated<T, E> = Valid(value)
+    override fun <T> valid(value: T): Validated<T, A> = Valid(value)
 
-    override fun <T> invalid(vararg failures: F): Validated<T, E> =
+    override fun <T> invalid(vararg failures: E): Validated<T, A> =
         Invalid(failures.toList()
-            .foldRight(errorModel.empty) { f, e ->
-                errorModel.add(e, f)
+            .foldRight(errorModel.empty) { error, aggregator ->
+                errorModel.add(aggregator, error)
             })
 
-    override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, F> =
+    override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, A, E> =
         Valid(value) validateThat test
 
-    override fun <T> Validated<T, E>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, F> =
+    override fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, A, E> =
         this.internals validateThat test
 
-    override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
+    override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
         collectToT(validated.toList())
 
-    override fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> F): Validated<T, E> =
+    override fun <T> Validated<T, A>.annotateInvalid(errorProvider: () -> E): Validated<T, A> =
         if (valid) this else Invalid(errorModel.add(error, errorProvider()))
 
-    internal val <T> Validated<T, E>.internals
+    internal val <T> Validated<T, A>.internals
         get() = this as AbstractValidated<T>
 
-    internal fun <T> collectToT(validated: List<Validated<*, E>>): Validated<T, E> =
+    internal fun <T> collectToT(validated: List<Validated<*, A>>): Validated<T, A> =
         flattenValidated(validated)
             ?.let { Invalid(it) }
             ?: JustValid()
 
     @Suppress("UNCHECKED_CAST")
-    internal abstract inner class AbstractValidated<T> : Validated<T, E> {
+    internal abstract inner class AbstractValidated<T> : Validated<T, A> {
 
-        override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
+        override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
             collectToT(listOf(this) + validated)
 
-        internal abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, F>
+        internal abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E>
 
-        internal fun sum(vararg validateds: Validated<*, E>): AbstractValidated<*> =
+        internal fun sum(vararg validateds: Validated<*, A>): AbstractValidated<*> =
             flattenValidated(listOf(this) + validateds.toList())
-                ?.let<E, Invalid<T>> { Invalid(it) }
+                ?.let<A, Invalid<T>> { Invalid(it) }
                 ?: this@AbstractValidated
 
         internal fun <V> retyped(): Invalid<V> =
@@ -82,22 +82,22 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
 
         override val error = errorModel.empty
 
-        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, F> =
+        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
             throw IllegalStateException("$this")
 
-        override fun <R> map(mapping: (T) -> R): Validated<R, E> =
+        override fun <R> map(mapping: (T) -> R): Validated<R, A> =
             throw IllegalStateException("$this")
 
-        override fun <R> flatMap(mapping: (T) -> Validated<R, E>): Validated<R, E> =
+        override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> =
             throw IllegalStateException("$this")
 
-        override fun validValueOr(errorConsumer: (E) -> Nothing) =
+        override fun validValueOr(errorConsumer: (A) -> Nothing) =
             throw IllegalStateException("$this")
 
-        override fun <R> zipWith(validator: () -> Validated<R, E>): Zipper1<T, R, E> =
+        override fun <R> zipWith(validator: () -> Validated<R, A>): Zipper1<T, R, A> =
             throw IllegalStateException("$this")
 
-        override fun <R> ifValid(validator: () -> Validated<R, E>): Validated<R, E> = validator()
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
 
         override val valid = true
 
@@ -114,25 +114,25 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
 
         override val error = errorModel.empty
 
-        override fun <R> map(mapping: (T) -> R): Validated<R, E> = Valid(mapping(item))
+        override fun <R> map(mapping: (T) -> R): Validated<R, A> = Valid(mapping(item))
 
-        override fun <R> flatMap(mapping: (T) -> Validated<R, E>): Validated<R, E> = mapping(item)
+        override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> = mapping(item)
 
-        override fun validValueOr(errorConsumer: (E) -> Nothing): T = item
+        override fun validValueOr(errorConsumer: (A) -> Nothing): T = item
 
-        override fun <R> zipWith(validator0: () -> Validated<R, E>) =
-            object : Zipper1<T, R, E> {
+        override fun <R> zipWith(validator0: () -> Validated<R, A>) =
+            object : Zipper1<T, R, A> {
 
-                override fun <V> map(combiner: (T, R) -> V): Validated<V, E> =
+                override fun <V> map(combiner: (T, R) -> V): Validated<V, A> =
                     validator0().map { r -> combiner(item, r) }
 
-                override fun <V> flatMap(combiner: (T, R) -> Validated<V, E>): Validated<V, E> =
+                override fun <V> flatMap(combiner: (T, R) -> Validated<V, A>): Validated<V, A> =
                     validator0().flatMap { r -> combiner(item, r) }
 
-                override fun <RR> zipWith(validator1: () -> Validated<RR, E>): Zipper2<T, R, RR, E> =
-                    object : Zipper2<T, R, RR, E> {
+                override fun <RR> zipWith(validator1: () -> Validated<RR, A>): Zipper2<T, R, RR, A> =
+                    object : Zipper2<T, R, RR, A> {
 
-                        override fun <V> map(combiner: (T, R, RR) -> V): Validated<V, E> =
+                        override fun <V> map(combiner: (T, R, RR) -> V): Validated<V, A> =
                             validator0().let { validated0 ->
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1).takeIf { it.invalid }
@@ -145,7 +145,7 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                 }
                             }
 
-                        override fun <V> flatMap(combiner: (T, R, RR) -> Validated<V, E>): Validated<V, E> =
+                        override fun <V> flatMap(combiner: (T, R, RR) -> Validated<V, A>): Validated<V, A> =
                             validator0().let { validated0 ->
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1)
@@ -159,10 +159,10 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                 }
                             }
 
-                        override fun <RRR> zipWith(validator2: () -> Validated<RRR, E>): Zipper3<T, R, RR, RRR, E> =
-                            object : Zipper3<T, R, RR, RRR, E> {
+                        override fun <RRR> zipWith(validator2: () -> Validated<RRR, A>): Zipper3<T, R, RR, RRR, A> =
+                            object : Zipper3<T, R, RR, RRR, A> {
 
-                                override fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, E> =
+                                override fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, A> =
                                     validator0().let { validated0 ->
                                         validator1().let { validated1 ->
                                             validator2().let { validated2 ->
@@ -180,8 +180,8 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                         }
                                     }
 
-                                override fun <V> flatMap(combiner: (T, R, RR, RRR) -> Validated<V, E>): Validated<V, E> =
-                                    validator0().let { validated0: Validated<R, E> ->
+                                override fun <V> flatMap(combiner: (T, R, RR, RRR) -> Validated<V, A>): Validated<V, A> =
+                                    validator0().let { validated0: Validated<R, A> ->
                                         validator1().let { validated1 ->
                                             validator2().let { validated2 ->
                                                 sum(validated0, validated1, validated2)
@@ -198,11 +198,11 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                         }
                                     }
 
-                                override fun <RRRR> zipWith(validator3: () -> Validated<RRRR, E>): Zipper4<T, R, RR, RRR, RRRR, E> =
-                                    object : Zipper4<T, R, RR, RRR, RRRR, E> {
+                                override fun <RRRR> zipWith(validator3: () -> Validated<RRRR, A>): Zipper4<T, R, RR, RRR, RRRR, A> =
+                                    object : Zipper4<T, R, RR, RRR, RRRR, A> {
 
-                                        override fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, E> =
-                                            validator0().let { validated0: Validated<R, E> ->
+                                        override fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, A> =
+                                            validator0().let { validated0: Validated<R, A> ->
                                                 validator1().let { validated1 ->
                                                     validator2().let { validated2 ->
                                                         validator3().let { validated3 ->
@@ -223,8 +223,8 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                                 }
                                             }
 
-                                        override fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, E>): Validated<V, E> =
-                                            validator0().let { validated0: Validated<R, E> ->
+                                        override fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, A>): Validated<V, A> =
+                                            validator0().let { validated0: Validated<R, A> ->
                                                 validator1().let { validated1 ->
                                                     validator2().let { validated2 ->
                                                         validator3().let { validated3 ->
@@ -245,37 +245,37 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                                                 }
                                             }
 
-                                        override val sum: Validated<*, E> get() = sum(validator0(), validator1(), validator2(), validator3())
+                                        override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2(), validator3())
 
                                         override fun toString(): String = javaClass.simpleName
                                     }
 
-                                override val sum: Validated<*, E> get() = sum(validator0(), validator1(), validator2())
+                                override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2())
 
                                 override fun toString(): String = javaClass.simpleName
                             }
 
-                        override val sum: Validated<*, E> get() = sum(validator0(), validator1())
+                        override val sum: Validated<*, A> get() = sum(validator0(), validator1())
 
                         override fun toString(): String = javaClass.simpleName
                     }
 
-                override val sum: Validated<*, E> get() = sum(validator0())
+                override val sum: Validated<*, A> get() = sum(validator0())
             }
 
-        override infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, F> =
-            object : OrInvalidate<T, E, F> {
+        override infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
+            object : OrInvalidate<T, A, E> {
 
-                override fun elseInvalid(toError: (T) -> F): Validated<T, E> =
+                override fun elseInvalid(toError: (T) -> E): Validated<T, A> =
                     if (isValid(item) == true) this@Valid else Invalid(errorModel.add(error, toError(item)))
             }
 
-        override fun <R> ifValid(validator: () -> Validated<R, E>): Validated<R, E> = validator()
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
 
         override fun toString() = "${javaClass.simpleName}[$item]"
     }
 
-    internal inner class Invalid<T>(internal val validationError: E) : AbstractValidated<T>() {
+    internal inner class Invalid<T>(internal val validationError: A) : AbstractValidated<T>() {
 
         override val valid: Boolean = false
 
@@ -283,78 +283,78 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
 
         override val value: T get() = throw IllegalStateException("$this invalid")
 
-        override val error: E get() = validationError
+        override val error: A get() = validationError
 
-        override fun <R> map(mapping: (T) -> R): Validated<R, E> =
+        override fun <R> map(mapping: (T) -> R): Validated<R, A> =
             Invalid(validationError)
 
-        override fun <R> flatMap(mapping: (T) -> Validated<R, E>): Invalid<R> =
+        override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Invalid<R> =
             Invalid(validationError)
 
-        override fun validValueOr(errorConsumer: (E) -> Nothing): Nothing =
+        override fun validValueOr(errorConsumer: (A) -> Nothing): Nothing =
             errorConsumer.invoke(validationError)
 
-        override fun <R> zipWith(validator0: () -> Validated<R, E>): Zipper1<T, R, E> =
-            object : Zipper1<T, R, E> {
+        override fun <R> zipWith(validator0: () -> Validated<R, A>): Zipper1<T, R, A> =
+            object : Zipper1<T, R, A> {
 
-                override fun <V> map(combiner: (T, R) -> V): Validated<V, E> =
+                override fun <V> map(combiner: (T, R) -> V): Validated<V, A> =
                     Invalid(errorModel.combine(validationError, validator0().error))
 
-                override fun <V> flatMap(combiner: (T, R) -> Validated<V, E>): Validated<V, E> =
+                override fun <V> flatMap(combiner: (T, R) -> Validated<V, A>): Validated<V, A> =
                     Invalid(errorModel.combine(validationError, validator0().error))
 
-                override fun <RR> zipWith(validator1: () -> Validated<RR, E>): Zipper2<T, R, RR, E> =
+                override fun <RR> zipWith(validator1: () -> Validated<RR, A>): Zipper2<T, R, RR, A> =
 
-                    object : Zipper2<T, R, RR, E> {
+                    object : Zipper2<T, R, RR, A> {
 
-                        override fun <V> map(combiner: (T, R, RR) -> V): Validated<V, E> =
+                        override fun <V> map(combiner: (T, R, RR) -> V): Validated<V, A> =
                             sum(validator0(), validator1()).retyped()
 
-                        override fun <V> flatMap(combiner: (T, R, RR) -> Validated<V, E>): Validated<V, E> =
+                        override fun <V> flatMap(combiner: (T, R, RR) -> Validated<V, A>): Validated<V, A> =
                             sum(validator0(), validator1()).retyped()
 
-                        override fun <RRR> zipWith(validator2: () -> Validated<RRR, E>): Zipper3<T, R, RR, RRR, E> =
-                            object : Zipper3<T, R, RR, RRR, E> {
+                        override fun <RRR> zipWith(validator2: () -> Validated<RRR, A>): Zipper3<T, R, RR, RRR, A> =
+                            object : Zipper3<T, R, RR, RRR, A> {
 
-                                override fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, E> =
+                                override fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, A> =
                                     sum(validator0(), validator1(), validator2()).retyped()
 
-                                override fun <V> flatMap(combiner: (T, R, RR, RRR) -> Validated<V, E>): Validated<V, E> =
+                                override fun <V> flatMap(combiner: (T, R, RR, RRR) -> Validated<V, A>): Validated<V, A> =
                                     sum(validator0(), validator1(), validator2()).retyped()
 
-                                override fun <RRRR> zipWith(validator3: () -> Validated<RRRR, E>): Zipper4<T, R, RR, RRR, RRRR, E> =
-                                    object : Zipper4<T, R, RR, RRR, RRRR, E> {
+                                override fun <RRRR> zipWith(validator3: () -> Validated<RRRR, A>): Zipper4<T, R, RR, RRR, RRRR, A> =
+                                    object : Zipper4<T, R, RR, RRR, RRRR, A> {
 
-                                        override fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, E> =
+                                        override fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, A> =
                                             sum(validator0(), validator1(), validator2(), validator3()).retyped()
 
-                                        override fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, E>): Validated<V, E> =
+                                        override fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, A>): Validated<V, A> =
                                             sum(validator0(), validator1(), validator2(), validator3()).retyped()
 
-                                        override val sum: Validated<*, E> get() = sum(validator0(), validator1(), validator2(), validator3())
+                                        override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2(), validator3())
 
                                         override fun toString(): String = javaClass.simpleName
                                     }
 
-                                override val sum: Validated<*, E> get() = sum(validator0(), validator1(), validator2())
+                                override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2())
 
                                 override fun toString(): String = javaClass.simpleName
                             }
 
-                        override val sum: Validated<*, E> get() = sum(validator0(), validator1())
+                        override val sum: Validated<*, A> get() = sum(validator0(), validator1())
 
                         override fun toString(): String = javaClass.simpleName
                     }
 
-                override val sum: Validated<*, E> get() = sum(validator0())
+                override val sum: Validated<*, A> get() = sum(validator0())
 
                 override fun toString(): String = javaClass.simpleName
             }
 
-        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, F> =
-            object : OrInvalidate<T, E, F> {
+        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
+            object : OrInvalidate<T, A, E> {
 
-                override fun elseInvalid(toErrors: (T) -> F): Validated<T, E> = this@Invalid
+                override fun elseInvalid(toErrors: (T) -> E): Validated<T, A> = this@Invalid
             }
 
         override fun toString() =
@@ -362,7 +362,7 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
                 errorModel str error
             }]"
 
-        override fun <R> ifValid(validator: () -> Validated<R, E>): Validated<R, E> = this.retyped()
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = this.retyped()
     }
 
     override fun toString() = "${javaClass.simpleName}[$errorModel]"

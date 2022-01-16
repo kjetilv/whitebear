@@ -2,41 +2,41 @@
 
 package com.github.kjetilv.whitebear
 
-interface ErrorModel<F, E> {
+interface ErrorModel<E, A> {
 
-    val empty: E
+    val empty: A
 
-    infix fun isEmpty(e: E): Boolean
+    infix fun isEmpty(aggregator: A): Boolean
 
-    fun combine(e1: E, e2: E): E
+    fun combine(aggregator1: A, aggregator2: A): A
 
-    fun add(e: E, c: F): E
+    fun add(aggregator: A, error: E): A
 
-    infix fun str(es: E) = "$es"
+    infix fun str(aggregator: A) = "$aggregator"
 }
 
-fun <F> failureList(str: (F) -> String = { "$it" }): ErrorModel<F, List<F>> =
-    FailureList<F>(str)
+fun <E> failureList(str: (E) -> String = { "$it" }): ErrorModel<E, List<E>> =
+    FailureList<E>(str)
 
-fun <E, F, R> validate(
-    errorModel: ErrorModel<F, E>,
-    action: ValidatorContext<E, F>.() -> R,
+fun <E, A, R> validate(
+    errorModel: ErrorModel<A, E>,
+    action: ValidatorContext<E, A>.() -> R,
 ): R =
     action(ErrorModelValidationContext(errorModel))
 
-sealed interface ValidatorContext<E, F> {
+sealed interface ValidatorContext<E, A> {
 
     fun <T> valid(value: T): Validated<T, E>
 
-    fun <T> invalid(vararg failures: F): Validated<T, E>
+    fun <T> invalid(vararg failures: A): Validated<T, E>
 
-    fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, F>
+    fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
-    infix fun <T> Validated<T, E>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, F>
+    infix fun <T> Validated<T, E>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
     fun collect(vararg validated: Validated<*, E>): Validated<Any, E>
 
-    infix fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> F): Validated<T, E>
+    infix fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> A): Validated<T, E>
 }
 
 sealed interface Validated<T, E> {
@@ -88,9 +88,9 @@ sealed interface Validated<T, E> {
     val invalid: Boolean
 }
 
-interface OrInvalidate<T, E, F> {
+interface OrInvalidate<T, E, A> {
 
-    infix fun elseInvalid(toErrors: (T) -> F): Validated<T, E>
+    infix fun elseInvalid(toErrors: (T) -> A): Validated<T, E>
 }
 
 interface Zipper1<T, R, E> {
@@ -99,9 +99,9 @@ interface Zipper1<T, R, E> {
 
     infix fun <RR> zipWith(validator: () -> Validated<RR, E>): Zipper2<T, R, RR, E>
 
-    infix fun <V> map(combiner: (T, R) -> V): Validated<V, E>
+    infix fun <O> map(combiner: (T, R) -> O): Validated<O, E>
 
-    infix fun <V> flatMap(combiner: (T, R) -> Validated<V, E>): Validated<V, E>
+    infix fun <O> flatMap(combiner: (T, R) -> Validated<O, E>): Validated<O, E>
 
     val sum: Validated<*, E>
 }
@@ -112,9 +112,9 @@ interface Zipper2<T, R, RR, E> {
 
     infix fun <RRR> zipWith(validator: () -> Validated<RRR, E>): Zipper3<T, R, RR, RRR, E>
 
-    infix fun <V> map(combiner: (T, R, RR) -> V): Validated<V, E>
+    infix fun <O> map(combiner: (T, R, RR) -> O): Validated<O, E>
 
-    infix fun <V> flatMap(combiner: (T, R, RR) -> Validated<V, E>): Validated<V, E>
+    infix fun <O> flatMap(combiner: (T, R, RR) -> Validated<O, E>): Validated<O, E>
 
     val sum: Validated<*, E>
 }
@@ -125,18 +125,18 @@ interface Zipper3<T, R, RR, RRR, E> {
 
     infix fun <RRRR> zipWith(validator: () -> Validated<RRRR, E>): Zipper4<T, R, RR, RRR, RRRR, E>
 
-    infix fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, E>
+    infix fun <O> map(combiner: (T, R, RR, RRR) -> O): Validated<O, E>
 
-    infix fun <V> flatMap(combiner: (T, R, RR, RRR) -> Validated<V, E>): Validated<V, E>
+    infix fun <O> flatMap(combiner: (T, R, RR, RRR) -> Validated<O, E>): Validated<O, E>
 
     val sum: Validated<*, E>
 }
 
 interface Zipper4<T, R, RR, RRR, RRRR, E> {
 
-    infix fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, E>
+    infix fun <O> map(combiner: (T, R, RR, RRR, RRRR) -> O): Validated<O, E>
 
-    infix fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, E>): Validated<V, E>
+    infix fun <O> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<O, E>): Validated<O, E>
 
     val sum: Validated<*, E>
 }
