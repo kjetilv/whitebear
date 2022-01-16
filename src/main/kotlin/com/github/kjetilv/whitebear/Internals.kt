@@ -21,12 +21,12 @@ internal data class FailureList<E>(val str: (E) -> String = { "$it" }) : ErrorMo
 }
 
 @Suppress("UNCHECKED_CAST")
-internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorModel<E, A>) : ValidatorContext<A, E> {
+internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorModel<E, A>) : ValidatorContext<E, A> {
 
     internal fun flattenValidated(vals: List<Validated<*, A>>) =
-        vals.map { it.error ?: errorModel.empty }
-            .reduce { e1, e2 ->
-                errorModel.combine(e1, e2)
+        vals.map { it.error }
+            .reduce { aggregator1: A, aggregator2: A ->
+                errorModel.combine(aggregator1, aggregator2)
             }.takeUnless {
                 errorModel isEmpty it
             }
@@ -39,10 +39,10 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                 errorModel.add(aggregator, error)
             })
 
-    override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, A, E> =
+    override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A> =
         Valid(value) validateThat test
 
-    override fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, A, E> =
+    override fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A> =
         this.internals validateThat test
 
     override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
@@ -65,7 +65,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
             collectToT(listOf(this) + validated)
 
-        internal abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E>
+        internal abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A>
 
         internal fun sum(vararg validateds: Validated<*, A>): AbstractValidated<*> =
             flattenValidated(listOf(this) + validateds.toList())
@@ -82,7 +82,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override val error = errorModel.empty
 
-        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
+        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A> =
             throw IllegalStateException("$this")
 
         override fun <R> map(mapping: (T) -> R): Validated<R, A> =
@@ -119,6 +119,15 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> = mapping(item)
 
         override fun validValueOr(errorConsumer: (A) -> Nothing): T = item
+
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
+
+        override infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A> =
+            object : OrInvalidate<T, E, A> {
+
+                override fun elseInvalid(toError: (T) -> E): Validated<T, A> =
+                    if (isValid(item) == true) this@Valid else Invalid(errorModel.add(error, toError(item)))
+            }
 
         override fun <R> zipWith(validator0: () -> Validated<R, A>) =
             object : Zipper1<T, R, A> {
@@ -263,15 +272,6 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                 override val sum: Validated<*, A> get() = sum(validator0())
             }
 
-        override infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
-            object : OrInvalidate<T, A, E> {
-
-                override fun elseInvalid(toError: (T) -> E): Validated<T, A> =
-                    if (isValid(item) == true) this@Valid else Invalid(errorModel.add(error, toError(item)))
-            }
-
-        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
-
         override fun toString() = "${javaClass.simpleName}[$item]"
     }
 
@@ -351,8 +351,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                 override fun toString(): String = javaClass.simpleName
             }
 
-        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, A, E> =
-            object : OrInvalidate<T, A, E> {
+        override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A> =
+            object : OrInvalidate<T, E, A> {
 
                 override fun elseInvalid(toErrors: (T) -> E): Validated<T, A> = this@Invalid
             }
