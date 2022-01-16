@@ -1,6 +1,6 @@
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
-import com.github.kjetilv.whitebear.validated
+import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -136,7 +136,7 @@ class RestResrouce {
     private val serviceLayer = ServiceLayer()
 
     fun hello(world: String, greeting: String): String =
-        validated(failureList<String>()) {
+        validate(failureList<String>()) {
             serviceLayer.greet(world, greeting) annotateInvalid {
                 "REST layer failed: $world/$greeting "
             } validValueOr { errors ->
@@ -148,7 +148,7 @@ class RestResrouce {
 class ServiceLayer {
 
     fun greet(world: String, greeting: String) =
-        validated(strings) {
+        validate(errorStrings) {
             getWorld(world) flatMap {
                 it.accept(greeting)
             }  validateThat {
@@ -161,7 +161,7 @@ class ServiceLayer {
         }
 
     private fun getWorld(world: String): Validated<Wrodl, List<String>> =
-        validated(strings) {
+        validate(errorStrings) {
             when (world) {
                 "biz" -> valid(Bizarro(1))
                 "col" -> valid(Collider(2))
@@ -177,7 +177,7 @@ sealed class Wrodl {
 
 class Bizarro(private val x: Int) : Wrodl() {
     override fun accept(greeting: String): Validated<String, List<String>> =
-        validated(strings) {
+        validate(errorStrings) {
             when (greeting) {
                 "zib" -> valid("ok: $x")
                 "zibb" -> valid("ouch: $x")
@@ -190,7 +190,7 @@ class Bizarro(private val x: Int) : Wrodl() {
 
 class Collider(private val y: Int) : Wrodl() {
     override fun accept(greeting: String): Validated<String, List<String>> =
-        validated(strings) {
+        validate(errorStrings) {
             when (greeting) {
                 "col" -> valid("ok: $y")
                 "coll" -> valid("ouch: $y")

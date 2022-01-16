@@ -1,6 +1,6 @@
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
-import com.github.kjetilv.whitebear.validated
+import com.github.kjetilv.whitebear.validate
 
 const val name = "Kjetil"
 const val nameX = "kjetil"
@@ -16,7 +16,7 @@ internal val Person.licensedOk get() = age >= 18 || driversLicense == null
 val personIssues = failureList<PersonIssue>()
 
 internal fun personX(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
-    validated(personIssues) {
+    validate(personIssues) {
         valid(name) map { it.trim() } validateThat {
             it.startsUppercased
         } elseInvalid {
@@ -45,7 +45,7 @@ internal fun personX(name: String, age: Int, license: String?): Validated<Person
     }
 
 internal fun person0(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
-    validated(personIssues) {
+    validate(personIssues) {
 
         val inputValidations =
             collect(
@@ -84,7 +84,7 @@ internal fun person0(name: String, age: Int, license: String?): Validated<Person
     }
 
 internal fun person1(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
-    validated(personIssues) {
+    validate(personIssues) {
 
         val validName = validateThat(name) {
             it.startsUppercased
@@ -104,9 +104,9 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
             BadLicense("Bad license: $it")
         }
 
-        val zip = zip(validName, validAge, validLicense)
+        val zipped = validName zipWith validAge zipWith validLicense
 
-        zip map ::Person validateThat {
+        zipped map ::Person validateThat {
             it.licensedOk
         } elseInvalid {
             BadCombo("Too young to drive: $validName")
@@ -116,7 +116,7 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
     }
 
 internal fun person1a(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
-    validated(personIssues) {
+    validate(personIssues) {
 
         val validatedPerson = (validateThat(name) {
             it.startsUppercased
@@ -145,7 +145,7 @@ internal fun person1a(name: String, age: Int, license: String?): Validated<Perso
     }
 
 internal fun person2(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
-    return validated(personIssues) {
+    return validate(personIssues) {
 
         validateThat(name) {
             it.startsUppercased
@@ -174,7 +174,7 @@ internal fun person2(name: String, age: Int, license: String?): Validated<Person
 }
 
 internal fun person3(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
-    validated(personIssues) {
+    validate(personIssues) {
 
         val nameVal = validateThat(name) {
             it.startsUppercased
@@ -206,7 +206,7 @@ internal fun person3(name: String, age: Int, license: String?): Validated<Person
     }
 
 internal fun person4(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
-    return validated(personIssues) {
+    return validate(personIssues) {
         collect(
             validateThat(name) {
                 it.startsUppercased

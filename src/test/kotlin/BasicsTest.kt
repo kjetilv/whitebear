@@ -1,26 +1,26 @@
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
-import com.github.kjetilv.whitebear.validated
+import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-internal val strings = failureList<String>()
+internal val errorStrings = failureList<String>()
 
 class BasicsTest {
 
-    private fun invalidMap(error: String): Validated<String, List<String>> = validated(strings) {
+    private fun invalidMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
         valid("str") map { it + "str" } validateThat { false } elseInvalid { error }
     }
 
-    private fun validMap(error: String): Validated<String, List<String>> = validated(strings) {
+    private fun validMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
         valid("str") map { it + "str" } validateThat { true } elseInvalid { error }
     }
 
-    private fun invalidFlat(error: String): Validated<String, List<String>> = validated(strings) {
+    private fun invalidFlat(error: String): Validated<String, List<String>> = validate(errorStrings) {
         valid("str") flatMap { valid(it + "str") } validateThat { false } elseInvalid { error }
     }
 
-    private fun validFlat(error: String): Validated<String, List<String>> = validated(strings) {
+    private fun validFlat(error: String): Validated<String, List<String>> = validate(errorStrings) {
         valid("str") flatMap { valid(it + "str") } validateThat { true } elseInvalid { error }
     }
 
@@ -38,7 +38,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalis() {
-        val errors: Validated<Any, List<String>> = validated(strings) {
+        val errors: Validated<Any, List<String>> = validate(errorStrings) {
             collect(invalidMap("0"), invalidFlat("1"))
         }
 
@@ -50,7 +50,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids0() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(validMap("0"), invalidMap("1"), invalidFlat("2"))
         }
 
@@ -62,7 +62,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids1() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(invalidMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
 
@@ -72,7 +72,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids2() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(invalidMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 
@@ -82,7 +82,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids01() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(validMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
 
@@ -92,7 +92,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids12() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(invalidMap("Oops"), validMap("Oops"), validMap("Oops"))
         }
 
@@ -102,7 +102,7 @@ class BasicsTest {
 
     @Test
     fun collectErrorsInvalidsAndValids02() {
-        val errors = validated(strings) {
+        val errors = validate(errorStrings) {
             collect(validMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 

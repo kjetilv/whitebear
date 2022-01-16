@@ -15,9 +15,10 @@ interface ErrorModel<F, E> {
     infix fun str(es: E) = "$es"
 }
 
-fun <F> failureList(str: (F) -> String = { "$it" }): ErrorModel<F, List<F>> = FailureList<F>(str)
+fun <F> failureList(str: (F) -> String = { "$it" }): ErrorModel<F, List<F>> =
+    FailureList<F>(str)
 
-fun <E, F, R> validated(
+fun <E, F, R> validate(
     errorModel: ErrorModel<F, E>,
     action: ValidatorContext<E, F>.() -> R,
 ): R =
@@ -35,48 +36,7 @@ sealed interface ValidatorContext<E, F> {
 
     fun collect(vararg validated: Validated<*, E>): Validated<Any, E>
 
-    fun <T> collectToT(vararg validated: Validated<*, E>): Validated<T, E>
-
     infix fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> F): Validated<T, E>
-
-    fun <T, R> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-    ): Zipper1<T, R, E>
-
-    fun <T, R, RR> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-    ): Zipper2<T, R, RR, E>
-
-    fun <T, R, RR, RRR> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        v3: Validated<RRR, E>,
-    ): Zipper3<T, R, RR, RRR, E>
-
-    fun <T, R, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        combiner: (T, R) -> V,
-    ): Validated<V, E>
-
-    fun <T, R, RR, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        combiner: (T, R, RR) -> V,
-    ): Validated<V, E>
-
-    fun <T, R, RR, RRR, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        v3: Validated<RRR, E>,
-        combiner: (T, R, RR, RRR) -> V,
-    ): Validated<V, E>
 }
 
 sealed interface Validated<T, E> {
@@ -88,6 +48,8 @@ sealed interface Validated<T, E> {
     infix fun <R> map(mapping: (T) -> R): Validated<R, E>
 
     infix fun <R> flatMap(mapping: (T) -> Validated<R, E>): Validated<R, E>
+
+    fun collect(vararg validated: Validated<*, E>): Validated<Any, E>
 
     infix fun <R> zipWith(
         validated: Validated<R, E>,

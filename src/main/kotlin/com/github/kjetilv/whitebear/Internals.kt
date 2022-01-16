@@ -25,17 +25,19 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
 
     internal fun flattenValidated(vals: List<Validated<*, E>>) =
         vals.map { it.error ?: errorModel.empty }
-            .foldRight(errorModel.empty) { e1, e2 ->
+            .reduce { e1, e2 ->
                 errorModel.combine(e1, e2)
-            }.takeUnless { errorModel.isEmpty(it) }
+            }.takeUnless {
+                errorModel isEmpty it
+            }
 
-    override fun <T> valid(value: T): Validated<T, E> =
-        Valid(value)
+    override fun <T> valid(value: T): Validated<T, E> = Valid(value)
 
     override fun <T> invalid(vararg failures: F): Validated<T, E> =
-        Invalid(failures.toList().foldRight(errorModel.empty) { f, e ->
-            errorModel.add(e, f)
-        })
+        Invalid(failures.toList()
+            .foldRight(errorModel.empty) { f, e ->
+                errorModel.add(e, f)
+            })
 
     override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, F> =
         Valid(value) validateThat test
@@ -44,66 +46,24 @@ internal class ErrorModelValidationContext<F, E>(private val errorModel: ErrorMo
         this.internals validateThat test
 
     override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
-        collectToT(*validated)
-
-    override fun <T> collectToT(vararg validated: Validated<*, E>): Validated<T, E> =
-        flattenValidated(validated.toList())
-            ?.let { Invalid(it) }
-            ?: JustValid()
+        collectToT(validated.toList())
 
     override fun <T> Validated<T, E>.annotateInvalid(errorProvider: () -> F): Validated<T, E> =
         if (valid) this else Invalid(errorModel.add(error, errorProvider()))
 
-    override fun <T, R> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-    ): Zipper1<T, R, E> =
-        v zipWith v1
-
-    override fun <T, R, RR> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-    ): Zipper2<T, R, RR, E> =
-        v zipWith v1 zipWith v2
-
-    override fun <T, R, RR, RRR> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        v3: Validated<RRR, E>,
-    ): Zipper3<T, R, RR, RRR, E> =
-        v zipWith v1 zipWith v2 zipWith v3
-
-    override fun <T, R, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        combiner: (T, R) -> V,
-    ): Validated<V, E> =
-        zip(v, v1) map combiner
-
-    override fun <T, R, RR, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        combiner: (T, R, RR) -> V,
-    ): Validated<V, E> =
-        zip(v, v1, v2) map combiner
-
-    override fun <T, R, RR, RRR, V> zip(
-        v: Validated<T, E>,
-        v1: Validated<R, E>,
-        v2: Validated<RR, E>,
-        v3: Validated<RRR, E>,
-        combiner: (T, R, RR, RRR) -> V,
-    ): Validated<V, E> =
-        v zipWith v1 zipWith v2 zipWith v3 map combiner
-
     internal val <T> Validated<T, E>.internals
         get() = this as AbstractValidated<T>
 
+    internal fun <T> collectToT(validated: List<Validated<*, E>>): Validated<T, E> =
+        flattenValidated(validated)
+            ?.let { Invalid(it) }
+            ?: JustValid()
+
     @Suppress("UNCHECKED_CAST")
     internal abstract inner class AbstractValidated<T> : Validated<T, E> {
+
+        override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
+            collectToT(listOf(this) + validated)
 
         internal abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, F>
 
