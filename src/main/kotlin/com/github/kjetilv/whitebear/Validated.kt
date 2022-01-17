@@ -21,9 +21,17 @@ interface Validated<T, A> {
 
     val error: A
 
+    val valid: Boolean
+
+    val invalid: Boolean
+
     infix fun <R> map(mapping: (T) -> R): Validated<R, A>
 
     infix fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A>
+
+    infix fun valueOr(errorConsumer: (A) -> Nothing): T
+
+    fun valueOrNull(): T?
 
     infix fun <R> zipWith(
         validated: Validated<R, A>,
@@ -72,14 +80,6 @@ interface Validated<T, A> {
         } zipWith {
             validated4
         }
-
-    infix fun valueOr(errorConsumer: (A) -> Nothing): T
-
-    fun valueOrNull(): T?
-
-    val valid: Boolean
-
-    val invalid: Boolean
 }
 
 interface OrInvalidate<T, E, A> {
