@@ -13,19 +13,19 @@ internal val errorStrings = failureList<String>()
 class BasicsTest {
 
     private fun invalidMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") map { it + "str" } validateThat { false } elseInvalid { error }
+        valid("str") map { it + "str" } validateThat { false } orInvalidate { error }
     }
 
     private fun validMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") map { it + "str" } validateThat { true } elseInvalid { error }
+        valid("str") map { it + "str" } validateThat { true } orInvalidate { error }
     }
 
     private fun invalidFlat(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") flatMap { valid(it + "str") } validateThat { false } elseInvalid { error }
+        valid("str") flatMap { valid(it + "str") } validateThat { false } orInvalidate { error }
     }
 
     private fun validFlat(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") flatMap { valid(it + "str") } validateThat { true } elseInvalid { error }
+        valid("str") flatMap { valid(it + "str") } validateThat { true } orInvalidate { error }
     }
 
     @Test

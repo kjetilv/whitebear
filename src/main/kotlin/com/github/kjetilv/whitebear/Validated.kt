@@ -1,30 +1,6 @@
-@file:Suppress("unused")
-
 package com.github.kjetilv.whitebear
 
-interface ErrorModel<E, A> {
-
-    val empty: A
-
-    infix fun isEmpty(aggregator: A): Boolean
-
-    fun combine(aggregator1: A, aggregator2: A): A
-
-    fun add(aggregator: A, error: E): A
-
-    infix fun str(aggregator: A) = "$aggregator"
-}
-
-fun <E> failureList(str: (E) -> String = { "$it" }): ErrorModel<E, List<E>> =
-    FailureList(str)
-
-fun <E, A, R> validate(
-    errorModel: ErrorModel<E, A>,
-    action: ValidatorContext<E, A>.() -> R,
-): R =
-    action(ErrorModelValidationContext(errorModel))
-
-sealed interface ValidatorContext<E, A> {
+interface ValidationContext<E, A> {
 
     fun <T> valid(value: T): Validated<T, A>
 
@@ -34,12 +10,12 @@ sealed interface ValidatorContext<E, A> {
 
     infix fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
-    fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
+    infix fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A>
 
-    infix fun <T> Validated<T, A>.annotateInvalid(errorProvider: () -> E): Validated<T, A>
+    fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
 }
 
-sealed interface Validated<T, A> {
+interface Validated<T, A> {
 
     val value: T
 
@@ -49,25 +25,37 @@ sealed interface Validated<T, A> {
 
     infix fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A>
 
-    fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
-
     infix fun <R> zipWith(
         validated: Validated<R, A>,
     ): Zipper1<T, R, A> =
-        zipWith { validated }
+        this zipWith { validated }
+
+    infix fun <R> zipWith(
+        validator: () -> Validated<R, A>,
+    ): Zipper1<T, R, A>
 
     fun <R, RR> zipWith(
         validated1: Validated<R, A>,
         validated2: Validated<RR, A>,
     ) =
-        zipWith { validated1 } zipWith { validated2 }
+        this zipWith {
+            validated1
+        } zipWith {
+            validated2
+        }
 
     fun <R, RR, RRR> zipWith(
         validated1: Validated<R, A>,
         validated2: Validated<RR, A>,
         validated3: Validated<RRR, A>,
     ) =
-        zipWith { validated1 } zipWith { validated2 } zipWith { validated3 }
+        this zipWith {
+            validated1
+        } zipWith {
+            validated2
+        } zipWith {
+            validated3
+        }
 
     fun <R, RR, RRR, RRRR> zipWith(
         validated1: Validated<R, A>,
@@ -75,13 +63,19 @@ sealed interface Validated<T, A> {
         validated3: Validated<RRR, A>,
         validated4: Validated<RRRR, A>,
     ) =
-        zipWith { validated1 } zipWith { validated2 } zipWith { validated3 } zipWith { validated4 }
+        this zipWith {
+            validated1
+        } zipWith {
+            validated2
+        } zipWith {
+            validated3
+        } zipWith {
+            validated4
+        }
 
-    infix fun <R> zipWith(validator: () -> Validated<R, A>): Zipper1<T, R, A>
+    infix fun valueOr(errorConsumer: (A) -> Nothing): T
 
-    infix fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A>
-
-    infix fun validValueOr(errorConsumer: (A) -> Nothing): T
+    fun valueOrNull(): T?
 
     val valid: Boolean
 
@@ -90,7 +84,7 @@ sealed interface Validated<T, A> {
 
 interface OrInvalidate<T, E, A> {
 
-    infix fun elseInvalid(toErrors: (T) -> E): Validated<T, A>
+    infix fun orInvalidate(invalidator: (T) -> E): Validated<T, A>
 }
 
 interface Zipper1<T, R, A> {

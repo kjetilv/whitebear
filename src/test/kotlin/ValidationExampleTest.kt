@@ -144,9 +144,9 @@ class RestResrouce {
 
     fun hello(world: String, greeting: String): String =
         validate(failureList<String>()) {
-            serviceLayer.greet(world, greeting) annotateInvalid {
+            serviceLayer.greet(world, greeting) annotateInvalidated {
                 "REST layer failed: $world/$greeting "
-            } validValueOr { errors ->
+            } valueOr { errors ->
                 throw IllegalStateException("Failed to greet: ${errors.joinToString(" => ") { it.trim() }}")
             }
         }
@@ -160,9 +160,9 @@ class ServiceLayer {
                 it.accept(greeting)
             } validateThat {
                 it != "ouch"
-            } elseInvalid {
+            } orInvalidate {
                 "Not a good response: $it"
-            } annotateInvalid {
+            } annotateInvalidated {
                 "World named $world and greeting $greeting was a no-go"
             }
         }
