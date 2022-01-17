@@ -125,7 +125,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                             validator0().let { validated0 ->
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1).takeIf { it.invalid }
-                                        ?.asInternal?.retyped()
+                                        ?.asInternal
+                                        ?.retyped()
                                         ?: (validated0 flatMap { itemR ->
                                             validated1 map { itemRR ->
                                                 combiner(item, itemR, itemRR)
@@ -139,7 +140,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1)
                                         .takeIf { it.invalid }
-                                        ?.asInternal?.retyped()
+                                        ?.asInternal
+                                        ?.retyped()
                                         ?: (validated0 flatMap { itemR ->
                                             validated1 flatMap { itemRR ->
                                                 combiner(item, itemR, itemRR)
@@ -159,7 +161,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                             validator2().let { validated2 ->
                                                 sum(validated0, validated1, validated2)
                                                     .takeIf { it.invalid }
-                                                    ?.asInternal?.retyped()
+                                                    ?.asInternal
+                                                    ?.retyped()
                                                     ?: (validated0 flatMap { itemR ->
                                                         validated1 flatMap { itemRR ->
                                                             validated2 map { itemRRR ->
@@ -177,14 +180,15 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                             validator2().let { validated2 ->
                                                 sum(validated0, validated1, validated2)
                                                     .takeIf { it.invalid }
-                                                    ?.asInternal?.retyped()
-                                                    ?: validated0.flatMap { itemR ->
-                                                        validated1.flatMap { itemRR ->
-                                                            validated2.flatMap { itemRRR ->
+                                                    ?.asInternal
+                                                    ?.retyped()
+                                                    ?: (validated0 flatMap { itemR ->
+                                                        validated1 flatMap { itemRR ->
+                                                            validated2 flatMap { itemRRR ->
                                                                 combiner(item, itemR, itemRR, itemRRR)
                                                             }
                                                         }
-                                                    }
+                                                    })
                                             }
                                         }
                                     }
@@ -201,7 +205,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                                         validator3().let { validated3 ->
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
-                                                                ?.asInternal?.retyped()
+                                                                ?.asInternal
+                                                                ?.retyped()
                                                                 ?: (validated0 flatMap { itemR ->
                                                                     validated1 flatMap { itemRR ->
                                                                         validated2 flatMap { itemRRR ->
@@ -223,7 +228,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                                         validator3().let { validated3 ->
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
-                                                                ?.asInternal?.retyped()
+                                                                ?.asInternal
+                                                                ?.retyped()
                                                                 ?: (validated0 flatMap { itemR ->
                                                                     validated1 flatMap { itemRR ->
                                                                         validated2 flatMap { itemRRR ->
