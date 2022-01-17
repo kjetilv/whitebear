@@ -126,11 +126,11 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1).takeIf { it.invalid }
                                         ?.asInternal?.retyped()
-                                        ?: validated0.flatMap { itemR ->
-                                            validated1.map { itemRR ->
+                                        ?: (validated0 flatMap { itemR ->
+                                            validated1 map { itemRR ->
                                                 combiner(item, itemR, itemRR)
                                             }
-                                        }
+                                        })
                                 }
                             }
 
@@ -140,11 +140,11 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                     sum(validated0, validated1)
                                         .takeIf { it.invalid }
                                         ?.asInternal?.retyped()
-                                        ?: validated0.flatMap { itemR ->
-                                            validated1.flatMap { itemRR ->
+                                        ?: (validated0 flatMap { itemR ->
+                                            validated1 flatMap { itemRR ->
                                                 combiner(item, itemR, itemRR)
                                             }
-                                        }
+                                        })
                                 }
                             }
 
@@ -160,13 +160,13 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                                 sum(validated0, validated1, validated2)
                                                     .takeIf { it.invalid }
                                                     ?.asInternal?.retyped()
-                                                    ?: validated0.flatMap { itemR ->
-                                                        validated1.flatMap { itemRR ->
-                                                            validated2.map { itemRRR ->
+                                                    ?: (validated0 flatMap { itemR ->
+                                                        validated1 flatMap { itemRR ->
+                                                            validated2 map { itemRRR ->
                                                                 combiner(item, itemR, itemRR, itemRRR)
                                                             }
                                                         }
-                                                    }
+                                                    })
                                             }
                                         }
                                     }
@@ -202,15 +202,15 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
                                                                 ?.asInternal?.retyped()
-                                                                ?: validated0.flatMap { itemR ->
-                                                                    validated1.flatMap { itemRR ->
-                                                                        validated2.flatMap { itemRRR ->
-                                                                            validated3.map { itemRRRR ->
+                                                                ?: (validated0 flatMap { itemR ->
+                                                                    validated1 flatMap { itemRR ->
+                                                                        validated2 flatMap { itemRRR ->
+                                                                            validated3 map { itemRRRR ->
                                                                                 combiner(item, itemR, itemRR, itemRRR, itemRRRR)
                                                                             }
                                                                         }
                                                                     }
-                                                                }
+                                                                })
                                                         }
                                                     }
                                                 }
@@ -224,15 +224,15 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
                                                                 ?.asInternal?.retyped()
-                                                                ?: validated0.flatMap { itemR ->
-                                                                    validated1.flatMap { itemRR ->
-                                                                        validated2.flatMap { itemRRR ->
-                                                                            validated3.flatMap { itemRRRR ->
+                                                                ?: (validated0 flatMap { itemR ->
+                                                                    validated1 flatMap { itemRR ->
+                                                                        validated2 flatMap { itemRRR ->
+                                                                            validated3 flatMap { itemRRRR ->
                                                                                 combiner(item, itemR, itemRR, itemRRR, itemRRRR)
                                                                             }
                                                                         }
                                                                     }
-                                                                }
+                                                                })
                                                         }
                                                     }
                                                 }
