@@ -3,6 +3,10 @@ import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal val errorStrings = failureList<String>()
 
@@ -26,14 +30,14 @@ class BasicsTest {
 
     @Test
     fun map() {
-        assertThat(invalidMap("Oops").valid).isFalse
-        assertThat(invalidMap("Oops").error).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops") })
+        assertFalse { invalidMap("Oops").valid }
+        assertContains(invalidMap("Oops").error, "Oops")
     }
 
     @Test
     fun flatMap() {
-        assertThat(invalidFlat("Oops flat").valid).isFalse
-        assertThat(invalidFlat("Oops flat").error).singleElement().satisfies(condition { assertThat(it).isEqualTo("Oops flat") })
+        assertFalse { invalidFlat("Oops flat").valid }
+        assertContains(invalidFlat("Oops flat").error, "Oops flat")
     }
 
     @Test
@@ -42,10 +46,10 @@ class BasicsTest {
             collect(invalidMap("0"), invalidFlat("1"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2)
-            .anyMatch { it == "0" }
-            .anyMatch { it == "1" }
+        assertFalse { errors.valid }
+        assertEquals(2, errors.error.size)
+        assertContains(errors.error, "0")
+        assertContains(errors.error, "1")
     }
 
     @Test
@@ -54,10 +58,10 @@ class BasicsTest {
             collect(validMap("0"), invalidMap("1"), invalidFlat("2"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2)
-            .anyMatch { it == "1" }
-            .anyMatch { it == "2" }
+        assertFalse { errors.valid }
+        assertEquals(2, errors.error.size)
+        assertContains(errors.error, "1")
+        assertContains(errors.error, "2")
     }
 
     @Test
@@ -66,8 +70,10 @@ class BasicsTest {
             collect(invalidMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertFalse { errors.valid }
+        assertEquals(2, errors.error.size)
+        assertContains(errors.error, "Oops")
+        assertContains(errors.error, "Oops flat")
     }
 
     @Test
@@ -76,8 +82,10 @@ class BasicsTest {
             collect(invalidMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2).anyMatch { "Oops" == it }.anyMatch { "Oops flat" == it }
+        assertFalse { errors.valid }
+        assertEquals(2, errors.error.size)
+        assertContains(errors.error, "Oops")
+        assertContains(errors.error, "Oops flat")
     }
 
     @Test
@@ -86,8 +94,9 @@ class BasicsTest {
             collect(validMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
+        assertFalse { errors.valid }
+        assertEquals(1, errors.error.size)
+        assertContains(errors.error, "Oops flat")
     }
 
     @Test
@@ -96,8 +105,9 @@ class BasicsTest {
             collect(invalidMap("Oops"), validMap("Oops"), validMap("Oops"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(1).anyMatch { "Oops" == it }
+        assertFalse { errors.valid }
+        assertEquals(1, errors.error.size)
+        assertContains(errors.error, "Oops")
     }
 
     @Test
@@ -106,50 +116,54 @@ class BasicsTest {
             collect(validMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
+        assertFalse { errors.valid }
+        assertEquals(1, errors.error.size)
+        assertContains(errors.error, "Oops flat")
     }
 
     @Test
     fun zipValids() {
         val validated = validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
-        assertThat(validated.valid).isTrue
-        assertThat(validated.value).isEqualTo("strstr" + "strstr")
+        assertTrue { validated.valid }
+        assertEquals("strstr" + "strstr", validated.value)
     }
 
     @Test
     fun zipZipValids() {
         val validated = validMap("Oops") zipWith validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2, s3 -> s1 + s2 + s3 }
 
-        assertThat(validated.valid).isTrue
-        assertThat(validated.value).isEqualTo("strstr" + "strstr" + "strstr")
+        assertTrue { validated.valid }
+        assertEquals("strstr" + "strstr" + "strstr", validated.value)
     }
 
     @Test
     fun zipInvalids() {
         val errors = validMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(1).anyMatch { "Oops flat" == it }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 1)
+        assertContains(errors.error, "Oops flat")
     }
 
     @Test
     fun zipBothInvalids() {
         val errors = invalidMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2)
-            .anyMatch { "Oops flat" == it }
-            .anyMatch { "Oops" == it }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 2)
+        assertContains(errors.error, "Oops flat")
+        assertContains(errors.error, "Oops")
     }
 
     @Test
     fun zipZipInvalids02() {
         val errors = invalidFlat("Oops flat") zipWith validFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 2)
+        assertContains(errors.error, "Oops flat")
+        assertContains(errors.error, "Oops")
     }
 
     @Test
@@ -159,9 +173,10 @@ class BasicsTest {
                 s1 + s2 + s3
             }
 
-        assertThat(errors.valid).isFalse
-
-        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 2)
+        assertContains(errors.error, "Oops flat")
+        assertContains(errors.error, "Oops")
     }
 
     @Test
@@ -180,19 +195,20 @@ class BasicsTest {
             zipper2 map { s1, s2, s3 ->
                 s1 + s2 + s3
             }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 3)
+        assertContains(errors.error, "0")
+        assertContains(errors.error, "1")
+        assertContains(errors.error, "2")
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(3)
-            .anyMatch { it == "0" }
-            .anyMatch { it == "1" }
-            .anyMatch { it == "2" }
     }
 
     @Test
     fun zipInvalidsFlip() {
         val errors = invalidMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(1).anyMatch { "Oops" == it }
+        assertFalse { errors.valid }
+        assertEquals(errors.error.size, 1)
+        assertContains(errors.error, "Oops")
     }
 }

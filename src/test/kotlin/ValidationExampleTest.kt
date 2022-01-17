@@ -4,20 +4,25 @@ import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> Validated<Person, List<PersonIssue>>) {
+abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> Validated<Person, PersonIssues>) {
 
     @Test
     fun `good person`() {
         val goodPerson = create(name, age, license)
-        assertThat(goodPerson.valid).isTrue
+        assertTrue { goodPerson.valid }
     }
 
     @Test
     fun `bad name`() {
         val badNamePerson = create(nameX, age, license)
-        assertFalse(badNamePerson.valid)
-        assertThat(badNamePerson.error).hasSize(2)
+
+        assertFalse { badNamePerson.valid }
+        assertEquals(2, badNamePerson.error.personIssues.size)
+
+        assertThat(badNamePerson.error.personIssues)
             .anyMatch { it is BadName }
             .anyMatch { it is TheBadness }
     }
@@ -26,7 +31,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad name, age`() {
         val badNameAgePerson = create(nameX, ageX, license)
         assertFalse(badNameAgePerson.valid)
-        assertThat(badNameAgePerson.error).hasSize(3)
+        assertThat(badNameAgePerson.error.personIssues).hasSize(3)
             .anyMatch { it is BadName }
             .anyMatch { it is BadAge }
             .anyMatch { it is TheBadness }
@@ -35,8 +40,9 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     @Test
     fun `bad name, license`() {
         val badNameLicensePerson = create(nameX, age, licenseX)
-        assertFalse(badNameLicensePerson.valid)
-        assertThat(badNameLicensePerson.error).hasSize(3)
+
+        assertFalse { badNameLicensePerson.valid }
+        assertThat(badNameLicensePerson.error.personIssues).hasSize(3)
             .anyMatch { it is BadName }
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
@@ -45,8 +51,9 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     @Test
     fun `bad age`() {
         val badAgePerson = create(name, ageX, license)
-        assertFalse(badAgePerson.valid)
-        assertThat(badAgePerson.error).hasSize(2)
+
+        assertFalse { badAgePerson.valid }
+        assertThat(badAgePerson.error.personIssues).hasSize(2)
             .anyMatch { it is BadAge }
             .anyMatch { it is TheBadness }
     }
@@ -55,7 +62,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad age, license`() {
         val badAgeLicensePerson = create(name, ageX, licenseX)
         assertFalse(badAgeLicensePerson.valid)
-        assertThat(badAgeLicensePerson.error).hasSize(3)
+        assertThat(badAgeLicensePerson.error.personIssues).hasSize(3)
             .anyMatch { it is BadAge }
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
@@ -65,7 +72,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad license`() {
         val badLicensePerson = create(name, age, licenseX)
         assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.error).hasSize(2)
+        assertThat(badLicensePerson.error.personIssues).hasSize(2)
             .anyMatch { it is BadLicense }
             .anyMatch { it is TheBadness }
     }
@@ -74,7 +81,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `bad state bad`() {
         val badLicensePerson = create(name, 16, license)
         assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.error).hasSize(2)
+        assertThat(badLicensePerson.error.personIssues).hasSize(2)
             .anyMatch { it is BadCombo }
             .anyMatch { it is TheBadness }
     }
@@ -83,7 +90,7 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
     fun `all bad`() {
         val badPerson = create(nameX, ageX, licenseX)
         assertFalse(badPerson.valid)
-        assertThat(badPerson.error).hasSize(4)
+        assertThat(badPerson.error.personIssues).hasSize(4)
             .anyMatch { it is BadName }
             .anyMatch { it is BadAge }
             .anyMatch { it is BadLicense }
@@ -151,7 +158,7 @@ class ServiceLayer {
         validate(errorStrings) {
             getWorld(world) flatMap {
                 it.accept(greeting)
-            }  validateThat {
+            } validateThat {
                 it != "ouch"
             } elseInvalid {
                 "Not a good response: $it"

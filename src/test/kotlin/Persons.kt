@@ -1,5 +1,4 @@
 import com.github.kjetilv.whitebear.Validated
-import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validate
 
 const val name = "Kjetil"
@@ -13,9 +12,9 @@ internal val String.isNumeric get() = chars().allMatch(Character::isDigit)
 internal val Int.realisticAge get() = this in 0..120
 internal val Person.licensedOk get() = age >= 18 || driversLicense == null
 
-val personIssues = failureList<PersonIssue>()
+val personIssues = PersonIssuesErrorModel()
 
-internal fun personX(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+internal fun personX(name: String, age: Int, license: String?) =
     validate(personIssues) {
         valid(name) map { it.trim() } validateThat {
             it.startsUppercased
@@ -44,7 +43,7 @@ internal fun personX(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person0(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+internal fun person0(name: String, age: Int, license: String?) =
     validate(personIssues) {
 
         val inputValidations =
@@ -83,7 +82,7 @@ internal fun person0(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person1(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+internal fun person1(name: String, age: Int, license: String?) =
     validate(personIssues) {
 
         val validName = validateThat(name) {
@@ -92,7 +91,7 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
             BadName("Name must start with uppercase: $it")
         }
 
-        val validAge: Validated<Int, List<PersonIssue>> = validateThat(age) {
+        val validAge: Validated<Int, PersonIssues> = validateThat(age) {
             it.realisticAge
         } elseInvalid {
             BadAge("Invalid age: $it")
@@ -115,7 +114,7 @@ internal fun person1(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person1a(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+internal fun person1a(name: String, age: Int, license: String?) =
     validate(personIssues) {
 
         val validatedPerson = (validateThat(name) {
@@ -144,8 +143,8 @@ internal fun person1a(name: String, age: Int, license: String?): Validated<Perso
         }
     }
 
-internal fun person2(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
-    return validate(personIssues) {
+internal fun person2(name: String, age: Int, license: String?) =
+    validate(personIssues) {
 
         validateThat(name) {
             it.startsUppercased
@@ -171,9 +170,8 @@ internal fun person2(name: String, age: Int, license: String?): Validated<Person
             TheBadness("Person validation failed")
         }
     }
-}
 
-internal fun person3(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> =
+internal fun person3(name: String, age: Int, license: String?) =
     validate(personIssues) {
 
         val nameVal = validateThat(name) {
@@ -205,8 +203,8 @@ internal fun person3(name: String, age: Int, license: String?): Validated<Person
         }
     }
 
-internal fun person4(name: String, age: Int, license: String?): Validated<Person, List<PersonIssue>> {
-    return validate(personIssues) {
+internal fun person4(name: String, age: Int, license: String?) =
+    validate(personIssues) {
         collect(
             validateThat(name) {
                 it.startsUppercased
@@ -233,4 +231,3 @@ internal fun person4(name: String, age: Int, license: String?): Validated<Person
             TheBadness("Person validation failed")
         }
     }
-}
