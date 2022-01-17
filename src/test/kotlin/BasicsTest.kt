@@ -1,5 +1,6 @@
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
+import com.github.kjetilv.whitebear.simpleFailureModel
 import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -210,5 +211,41 @@ class BasicsTest {
         assertFalse { errors.valid }
         assertEquals(errors.error.size, 1)
         assertContains(errors.error, "Oops")
+    }
+
+    @Test
+    fun fourbyFour() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            } zipWith {
+                valid(System.currentTimeMillis())
+            }
+        } map ::Fourer
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun fiveByFive() {
+        val validFour = validate(
+            simpleFailureModel("") { s1, s2 ->
+                s1 + s2
+            }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            } zipWith {
+                valid(System.currentTimeMillis())
+            } zipWith {
+                valid('c')
+            } map ::Fiver
+        }
+
+        assertTrue { validFour.valid }
     }
 }

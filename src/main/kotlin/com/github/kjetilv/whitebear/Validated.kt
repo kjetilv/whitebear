@@ -13,6 +13,36 @@ interface ValidationContext<E, A> {
     infix fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A>
 
     fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
+
+    fun <T, R> zip(
+        validated0: Validated<T, A>,
+        validated1: Validated<R, A>,
+    ): Zipper1<T, R, A> =
+        validated0 zipWith validated1
+
+    fun <T, R, RR> zip(
+        validated0: Validated<T, A>,
+        validated1: Validated<R, A>,
+        validated2: Validated<RR, A>,
+    ): Zipper2<T, R, RR, A> =
+        validated0.zipWith(validated1, validated2)
+
+    fun <T, R, RR, RRR> zip(
+        validated0: Validated<T, A>,
+        validated1: Validated<R, A>,
+        validated2: Validated<RR, A>,
+        validated3: Validated<RRR, A>,
+    ): Zipper3<T, R, RR, RRR, A> =
+        validated0.zipWith(validated1, validated2, validated3)
+
+    fun <T, R, RR, RRR, RRRR> zip(
+        validated0: Validated<T, A>,
+        validated1: Validated<R, A>,
+        validated2: Validated<RR, A>,
+        validated3: Validated<RRR, A>,
+        validated4: Validated<RRRR, A>,
+    ): Zipper4<T, R, RR, RRR, RRRR, A> =
+        validated0.zipWith(validated1, validated2, validated3, validated4)
 }
 
 interface Validated<T, A> {
@@ -34,12 +64,12 @@ interface Validated<T, A> {
     fun valueOrNull(): T?
 
     infix fun <R> zipWith(
-        validated: Validated<R, A>,
+        validated1: Validated<R, A>,
     ): Zipper1<T, R, A> =
-        this zipWith { validated }
+        this zipWith { validated1 }
 
     infix fun <R> zipWith(
-        validator: () -> Validated<R, A>,
+        validator1: () -> Validated<R, A>,
     ): Zipper1<T, R, A>
 
     fun <R, RR> zipWith(
