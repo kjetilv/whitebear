@@ -289,9 +289,13 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                 override fun <V> flatMap(combiner: (T, R) -> Validated<V, A>): Validated<V, A> =
                     Invalid(errorModel.combine(validationError, validator0().error))
 
+                override val sum: Validated<*, A> get() = sum(validator0())
+
                 override fun <RR> zipWith(validator1: () -> Validated<RR, A>): Zipper2<T, R, RR, A> =
 
                     object : Zipper2<T, R, RR, A> {
+
+                        override val sum: Validated<*, A> get() = sum(validator0(), validator1())
 
                         override fun <V> map(combiner: (T, R, RR) -> V): Validated<V, A> =
                             sum(validator0(), validator1()).retyped()
@@ -302,6 +306,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                         override fun <RRR> zipWith(validator2: () -> Validated<RRR, A>): Zipper3<T, R, RR, RRR, A> =
                             object : Zipper3<T, R, RR, RRR, A> {
 
+                                override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2())
+
                                 override fun <V> map(combiner: (T, R, RR, RRR) -> V): Validated<V, A> =
                                     sum(validator0(), validator1(), validator2()).retyped()
 
@@ -311,28 +317,22 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                                 override fun <RRRR> zipWith(validator3: () -> Validated<RRRR, A>): Zipper4<T, R, RR, RRR, RRRR, A> =
                                     object : Zipper4<T, R, RR, RRR, RRRR, A> {
 
+                                        override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2(), validator3())
+
                                         override fun <V> map(combiner: (T, R, RR, RRR, RRRR) -> V): Validated<V, A> =
                                             sum(validator0(), validator1(), validator2(), validator3()).retyped()
 
                                         override fun <V> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<V, A>): Validated<V, A> =
                                             sum(validator0(), validator1(), validator2(), validator3()).retyped()
 
-                                        override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2(), validator3())
-
                                         override fun toString(): String = javaClass.simpleName
                                     }
-
-                                override val sum: Validated<*, A> get() = sum(validator0(), validator1(), validator2())
 
                                 override fun toString(): String = javaClass.simpleName
                             }
 
-                        override val sum: Validated<*, A> get() = sum(validator0(), validator1())
-
                         override fun toString(): String = javaClass.simpleName
                     }
-
-                override val sum: Validated<*, A> get() = sum(validator0())
 
                 override fun toString(): String = javaClass.simpleName
             }
