@@ -69,7 +69,7 @@ internal fun person0(name: String, age: Int, license: String?) =
             )
 
         val validatedPerson =
-            inputValidations flatMap  {
+            inputValidations ifValid {
                 valid(Person(name, age, license))
             } validateThat {
                 it.licensedOk
@@ -192,7 +192,7 @@ internal fun person3(name: String, age: Int, license: String?) =
             BadLicense("Bad license: $it")
         }
 
-        collect(nameVal, ageVal, licVal) flatMap {
+        collect(nameVal, ageVal, licVal) ifValid {
             validateThat(Person(name, age, license)) {
                 it.licensedOk
             } orInvalidate {
@@ -221,7 +221,7 @@ internal fun person4(name: String, age: Int, license: String?) =
             } orInvalidate {
                 BadLicense("Bad license: $it")
             }
-        ) flatMap {
+        ) ifValid {
             validateThat(Person(name, age, license)) {
                 it.licensedOk
             } orInvalidate {

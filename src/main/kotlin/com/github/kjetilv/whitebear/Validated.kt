@@ -59,6 +59,8 @@ interface Validated<T, A> {
 
     infix fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A>
 
+    infix fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A>
+
     infix fun valueOr(errorConsumer: (A) -> Nothing): T
 
     fun valueOrNull(): T?

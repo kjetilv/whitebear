@@ -1,4 +1,4 @@
-@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE", "DuplicatedCode")
 
 package com.github.kjetilv.whitebear.impl
 
@@ -66,6 +66,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> =
             throw IllegalStateException("$this")
 
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
+
         override fun valueOr(errorConsumer: (A) -> Nothing) =
             throw IllegalStateException("$this")
 
@@ -93,6 +95,8 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun <R> map(mapping: (T) -> R): Validated<R, A> = Valid(mapping(item))
 
         override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> = mapping(item)
+
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
 
         override fun valueOr(errorConsumer: (A) -> Nothing): T = item
 
@@ -274,6 +278,9 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Invalid<R> =
             Invalid(validationError)
+
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> =
+            this.retyped()
 
         override fun valueOr(errorConsumer: (A) -> Nothing): Nothing =
             errorConsumer.invoke(validationError)
