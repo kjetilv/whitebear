@@ -1,3 +1,5 @@
+@file:Suppress("SameParameterValue")
+
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.simpleFailureModel
@@ -132,7 +134,8 @@ class BasicsTest {
 
     @Test
     fun zipZipValids() {
-        val validated = validMap("Oops") zipWith validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2, s3 -> s1 + s2 + s3 }
+        val validated =
+            validMap("Oops") zipWith validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertTrue { validated.valid }
         assertEquals("strstr" + "strstr" + "strstr", validated.value)
@@ -159,7 +162,8 @@ class BasicsTest {
 
     @Test
     fun zipZipInvalids02() {
-        val errors = invalidFlat("Oops flat") zipWith validFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
+        val errors =
+            invalidFlat("Oops flat") zipWith validFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertFalse { errors.valid }
         assertEquals(errors.error.size, 2)
@@ -182,7 +186,8 @@ class BasicsTest {
 
     @Test
     fun zipZipInvalids12() {
-        val errors = validMap("Oops") zipWith invalidFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
+        val errors =
+            validMap("Oops") zipWith invalidFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
         assertThat(errors.valid).isFalse
         assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
@@ -192,10 +197,9 @@ class BasicsTest {
     fun zipZipInvalids012() {
         val zipper1 = invalidMap("0") zipWith invalidFlat("1")
         val zipper2 = zipper1 zipWith invalidMap("2")
-        val errors =
-            zipper2 map { s1, s2, s3 ->
-                s1 + s2 + s3
-            }
+        val errors = zipper2 map { s1, s2, s3 ->
+            s1 + s2 + s3
+        }
         assertFalse { errors.valid }
         assertEquals(errors.error.size, 3)
         assertContains(errors.error, "0")
@@ -211,6 +215,55 @@ class BasicsTest {
         assertFalse { errors.valid }
         assertEquals(errors.error.size, 1)
         assertContains(errors.error, "Oops")
+    }
+
+    @Test
+    fun twoyFour() {
+        val validThree = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            }
+        } map ::Twofer
+        assertTrue { validThree.valid }
+    }
+
+    @Test
+    fun twoByFourAgain() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith valid(16)
+        } map ::Twofer
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun threeByFour() {
+        val validThree = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            }
+        } map ::Threefer
+        assertTrue { validThree.valid }
+    }
+
+    @Test
+    fun threeByFourAgain() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo").zipWith(
+                valid(16),
+                valid(true),
+            )
+        } map ::Threefer
+        assertTrue { validFour.valid }
     }
 
     @Test
@@ -230,11 +283,34 @@ class BasicsTest {
     }
 
     @Test
+    fun fourbyFourA() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            } zipWith (valid(System.currentTimeMillis()))
+        } map ::Fourer
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun fourbyFourAgain() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()))
+        } map ::Fourer
+        assertTrue { validFour.valid }
+    }
+
+    @Test
     fun fiveByFive() {
-        val validFour = validate(
-            simpleFailureModel("") { s1, s2 ->
-                s1 + s2
-            }) {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
             valid("foo") zipWith {
                 valid(16)
             } zipWith {
@@ -244,6 +320,53 @@ class BasicsTest {
             } zipWith {
                 valid('c')
             } map ::Fiver
+        }
+
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun fiveByFiveA() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            } zipWith {
+                valid(System.currentTimeMillis())
+            } zipWith {
+                valid('c')
+            } map ::Fiver
+        }
+
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun fiveByFiveB() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo") zipWith {
+                valid(16)
+            } zipWith {
+                valid(true)
+            } zipWith {
+                valid(System.currentTimeMillis())
+            } zipWith (valid('c')) map ::Fiver
+        }
+
+        assertTrue { validFour.valid }
+    }
+
+    @Test
+    fun fiveByFiveAgin() {
+        val validFour = validate(simpleFailureModel("") { s1, s2 ->
+            s1 + s2
+        }) {
+            valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()), valid('c')) map ::Fiver
         }
 
         assertTrue { validFour.valid }

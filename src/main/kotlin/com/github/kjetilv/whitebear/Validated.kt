@@ -10,6 +10,10 @@ interface ValidationContext<E, A> {
 
     infix fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
+    infix fun <T> Validated<T, A>.applyViolations(violations: (T) -> A?): Validated<T, A>
+
+    infix fun <T> Validated<T, A>.applyViolation(violations: (T) -> E?): Validated<T, A>
+
     infix fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A>
 
     fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
@@ -113,6 +117,16 @@ interface Validated<T, A> {
             validated4
         }
 }
+//
+//interface ThenInvalidateSingle<T, E, A> {
+//
+//    infix fun thenInvalidate(invalidator: (E) -> Validated<T, E>): Validated<T, A>
+//}
+//
+//interface ThenInvalidate<T, A> {
+//
+//    infix fun thenInvalidate(invalidator: (A) -> Validated<T, A>): Validated<T, A>
+//}
 
 interface OrInvalidate<T, E, A> {
 
