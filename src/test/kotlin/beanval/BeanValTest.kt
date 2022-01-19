@@ -35,33 +35,32 @@ class BeanValTest {
 
         val validator = Validation.buildDefaultValidatorFactory().validator
 
-        val validate: (X) -> List<ConstraintViolation<*>> = { validator.validate(it).toList() }
+        val constrationViolations: (X) -> List<ConstraintViolation<*>>? = { validator.validate(it).toList().takeIf { it.isNotEmpty() } }
+        val constrationViolation: (X) -> ConstraintViolation<*>? = { constrationViolations(it)?.firstOrNull() }
 
-        val simpleErrorModel = simpleFailureList<ConstraintViolation<*>>()
+        val multiViolations = simpleFailureList<ConstraintViolation<*>>()
 
-        val compositeErrorModel = failureList<ConstraintViolation<*>>()
+        val singleViolation = failureList<ConstraintViolation<*>>()
 
-        val bad = validate(simpleErrorModel) {
+        val bad = validate(multiViolations) {
             valid(X(3)) withViolations {
-                validate(it).takeIf { it.isNotEmpty() }
+                constrationViolations(it)
             }
         }
 
         assertFalse { bad.valid }
 
-        validate(compositeErrorModel) {
+        validate(singleViolation) {
             valid(X(3)) withViolation {
-                validate(it).firstOrNull()
+                constrationViolation(it)
             }
         }.apply {
             assertFalse { valid }
         }
 
-        validate(simpleErrorModel) {
+        validate(multiViolations) {
             valid(X(1, "sdfsdf")) withViolations {
-                validate(it).takeIf {
-                    it.isNotEmpty()
-                }
+                constrationViolations(it)
             } map {
                 it to it
             }
