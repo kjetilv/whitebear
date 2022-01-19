@@ -36,10 +36,10 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
     override fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A> =
         this.asInternal validateThat test
 
-    override fun <T> Validated<T, A>.applyViolation(violation: (T) -> E?): Validated<T, A> =
+    override fun <T> Validated<T, A>.withViolation(violation: (T) -> E?): Validated<T, A> =
         this.asInternal applyViolation violation
 
-    override fun <T> Validated<T, A>.applyViolations(violations: (T) -> A?): Validated<T, A> =
+    override fun <T> Validated<T, A>.withViolations(violations: (T) -> A?): Validated<T, A> =
         this.asInternal applyViolations violations
 
     override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
@@ -94,7 +94,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun valueOr(errorConsumer: (A) -> Nothing) =
             throw IllegalStateException("$this")
 
-        override fun valueOrNull(): Nothing =
+        override val valueOrNull: Nothing get() =
             throw IllegalStateException("$this")
 
         override fun <R> zipWith(validator: () -> Validated<R, A>): Zipper1<T, R, A> =
@@ -132,7 +132,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override fun valueOr(errorConsumer: (A) -> Nothing): T = item
 
-        override fun valueOrNull(): T = item
+        override val valueOrNull: T = item
 
         override infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A> =
             object : OrInvalidate<T, E, A> {
@@ -333,7 +333,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun valueOr(errorConsumer: (A) -> Nothing): Nothing =
             errorConsumer.invoke(validationError)
 
-        override fun valueOrNull(): T? = value
+        override val valueOrNull: T = value
 
         override fun <R> zipWith(validator1: () -> Validated<R, A>): Zipper1<T, R, A> =
             object : Zipper1<T, R, A> {

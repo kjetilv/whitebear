@@ -1,6 +1,7 @@
 package beanval
 
 import com.github.kjetilv.whitebear.Validated
+import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.simpleFailureList
 import com.github.kjetilv.whitebear.validate
 import jakarta.validation.ConstraintViolation
@@ -37,18 +38,28 @@ class BeanValTest {
 
         val validate: (X) -> List<ConstraintViolation<*>> = { validator.validate(it).toList() }
 
-        val errorModel = simpleFailureList<ConstraintViolation<*>>()
+        val simpleErrorModel = simpleFailureList<ConstraintViolation<*>>()
 
-        val bad: Validated<X, List<ConstraintViolation<*>>> = validate(errorModel) {
-            valid(X(3)) applyViolations {
+        val compositeErrorModel = failureList<ConstraintViolation<*>>()
+
+        val bad: Validated<X, List<ConstraintViolation<*>>> = validate(simpleErrorModel) {
+            valid(X(3)) withViolations {
                 validate(it).takeIf { it.isNotEmpty() }
             }
         }
 
         assertFalse { bad.valid }
 
-        val good = validate(errorModel) {
-            valid(X(1, "sdfsdf")) applyViolations {
+        val bad2: Validated<X, List<ConstraintViolation<*>>> = validate(compositeErrorModel) {
+            valid(X(3)) withViolation {
+                validate(it).firstOrNull()
+            }
+        }
+
+        assertFalse { bad2.valid }
+
+        val good = validate(simpleErrorModel) {
+            valid(X(1, "sdfsdf")) withViolations {
                 validate(it).takeIf {
                     it.isNotEmpty()
                 }

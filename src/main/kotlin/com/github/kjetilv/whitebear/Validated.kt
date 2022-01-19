@@ -10,9 +10,9 @@ interface ValidationContext<E, A> {
 
     infix fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
-    infix fun <T> Validated<T, A>.applyViolations(violations: (T) -> A?): Validated<T, A>
+    infix fun <T> Validated<T, A>.withViolations(violations: (T) -> A?): Validated<T, A>
 
-    infix fun <T> Validated<T, A>.applyViolation(violations: (T) -> E?): Validated<T, A>
+    infix fun <T> Validated<T, A>.withViolation(violation: (T) -> E?): Validated<T, A>
 
     infix fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A>
 
@@ -67,7 +67,7 @@ interface Validated<T, A> {
 
     infix fun valueOr(errorConsumer: (A) -> Nothing): T
 
-    fun valueOrNull(): T?
+    val valueOrNull: T?
 
     infix fun <R> zipWith(
         validated1: Validated<R, A>,
