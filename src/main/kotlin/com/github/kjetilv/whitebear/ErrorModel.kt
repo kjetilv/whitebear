@@ -11,6 +11,8 @@ interface ErrorModel<E, A> {
     fun add(aggregator: A, error: E): A
 
     infix fun str(aggregator: A) = "$aggregator"
+
+    infix fun singleton(e: E) = add(empty, e)
 }
 
 interface SimpleErrorModel<E> : ErrorModel<E, E> {

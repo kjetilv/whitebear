@@ -4,7 +4,11 @@ interface ValidationContext<E, A> {
 
     fun <T> valid(value: T): Validated<T, A>
 
+    fun <T> valid(value: () -> T): Validated<T, A>
+
     fun <T> invalid(vararg failures: E): Validated<T, A>
+
+    fun <T> invalid(failures: () -> E): Validated<T, A>
 
     fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A>
 

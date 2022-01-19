@@ -1,6 +1,5 @@
 package beanval
 
-import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.simpleFailureList
 import com.github.kjetilv.whitebear.validate
@@ -42,7 +41,7 @@ class BeanValTest {
 
         val compositeErrorModel = failureList<ConstraintViolation<*>>()
 
-        val bad: Validated<X, List<ConstraintViolation<*>>> = validate(simpleErrorModel) {
+        val bad = validate(simpleErrorModel) {
             valid(X(3)) withViolations {
                 validate(it).takeIf { it.isNotEmpty() }
             }
@@ -50,15 +49,15 @@ class BeanValTest {
 
         assertFalse { bad.valid }
 
-        val bad2: Validated<X, List<ConstraintViolation<*>>> = validate(compositeErrorModel) {
+        validate(compositeErrorModel) {
             valid(X(3)) withViolation {
                 validate(it).firstOrNull()
             }
+        }.apply {
+            assertFalse { valid }
         }
 
-        assertFalse { bad2.valid }
-
-        val good = validate(simpleErrorModel) {
+        validate(simpleErrorModel) {
             valid(X(1, "sdfsdf")) withViolations {
                 validate(it).takeIf {
                     it.isNotEmpty()
@@ -66,9 +65,9 @@ class BeanValTest {
             } map {
                 it to it
             }
+        }.apply {
+            assertTrue { valid }
         }
-
-        assertTrue { good.valid }
     }
 }
 

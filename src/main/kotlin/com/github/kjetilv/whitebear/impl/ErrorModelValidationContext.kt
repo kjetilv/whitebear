@@ -22,13 +22,17 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
                 errorModel isEmpty it
             }
 
-    override fun <T> valid(value: T): Validated<T, A> = Valid(value)
+    override fun <T> valid(value: T): Validated<T, A> = valid { value }
+
+    override fun <T> valid(value: () -> T): Validated<T, A> = Valid(value())
 
     override fun <T> invalid(vararg failures: E): Validated<T, A> =
         Invalid(failures.toList()
             .foldRight(errorModel.empty) { error, aggregator ->
                 errorModel.add(aggregator, error)
             })
+
+    override fun <T> invalid(failure: () -> E): Validated<T, A> = Invalid(errorModel.singleton(failure()))
 
     override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A> =
         Valid(value) validateThat test
@@ -94,8 +98,9 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun valueOr(errorConsumer: (A) -> Nothing) =
             throw IllegalStateException("$this")
 
-        override val valueOrNull: Nothing get() =
-            throw IllegalStateException("$this")
+        override val valueOrNull: Nothing
+            get() =
+                throw IllegalStateException("$this")
 
         override fun <R> zipWith(validator: () -> Validated<R, A>): Zipper1<T, R, A> =
             throw IllegalStateException("$this")
@@ -126,7 +131,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override fun applyViolation(violation: (T) -> E?): Validated<T, A> =
             violation(item)
-                ?.let { errorModel.add(errorModel.empty, it) }
+                ?.let { errorModel singleton it }
                 ?.let { Invalid(it) }
                 ?: this
 
