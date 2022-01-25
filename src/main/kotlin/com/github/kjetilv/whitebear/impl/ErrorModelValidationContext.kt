@@ -131,8 +131,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override fun applyViolation(violation: (T) -> E?): Validated<T, A> =
             violation(item)
-                ?.let { errorModel singleton it }
-                ?.let { Invalid(it) }
+                ?.let { Invalid(errorModel singleton it) }
                 ?: this
 
         override fun valueOr(errorConsumer: (A) -> Nothing): T = item

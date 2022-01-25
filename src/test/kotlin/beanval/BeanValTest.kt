@@ -1,6 +1,9 @@
 package beanval
 
-import com.github.kjetilv.whitebear.failureList
+import beanval.Beans.violations
+import com.github.kjetilv.whitebear.SimpleErrorModel
+import com.github.kjetilv.whitebear.Validated
+import com.github.kjetilv.whitebear.ValidationContext
 import com.github.kjetilv.whitebear.simpleFailureList
 import com.github.kjetilv.whitebear.validate
 import jakarta.validation.ConstraintViolation
@@ -11,6 +14,32 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
+typealias BeansContext = ValidationContext<List<ConstraintViolation<*>>, List<ConstraintViolation<*>>>
+
+typealias BeanErrors = SimpleErrorModel<List<ConstraintViolation<*>>>
+
+object Beans {
+
+    private val validator = Validation.buildDefaultValidatorFactory().validator
+
+    private val multiViolations: BeanErrors = simpleFailureList()
+
+    infix fun <R> BeansContext.violations(r: R): List<ConstraintViolation<R>>? =
+        validator.validate(r).toList().takeIf { it.isNotEmpty() }
+
+    operator fun <R> invoke(action: BeansContext.() -> R): R =
+        validate(multiViolations) {
+            action(this)
+        }
+
+    infix fun <T> validate(item: T) : Validated<T, List<ConstraintViolation<*>>> =
+        Beans {
+            valid(item) withViolations {
+                violations(it)
+            }
+        }
+}
 
 class BeanValTest {
 
@@ -33,40 +62,32 @@ class BeanValTest {
     @Test
     fun test_integrate() {
 
-        val validator = Validation.buildDefaultValidatorFactory().validator
-
-        val constrationViolations: (X) -> List<ConstraintViolation<*>>? = { validator.validate(it).toList().takeIf { it.isNotEmpty() } }
-        val constrationViolation: (X) -> ConstraintViolation<*>? = { constrationViolations(it)?.firstOrNull() }
-
-        val multiViolations = simpleFailureList<ConstraintViolation<*>>()
-
-        val singleViolation = failureList<ConstraintViolation<*>>()
-
-        val bad = validate(multiViolations) {
+        Beans {
             valid(X(3)) withViolations {
-                constrationViolations(it)
+                violations(it)
+            }
+        }
+
+        val bad = Beans {
+            valid(X(3)) withViolations {
+                violations(it)
             }
         }
 
         assertFalse { bad.valid }
 
-        validate(singleViolation) {
-            valid(X(3)) withViolation {
-                constrationViolation(it)
-            }
-        }.apply {
-            assertFalse { valid }
-        }
-
-        validate(multiViolations) {
+        Beans {
             valid(X(1, "sdfsdf")) withViolations {
-                constrationViolations(it)
+                violations(it)
             } map {
-                it to it
+                it to it.name
             }
         }.apply {
             assertTrue { valid }
         }
+
+        val simplr = Beans validate X(1)
+        assertFalse(simplr.valid)
     }
 }
 

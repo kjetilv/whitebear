@@ -73,14 +73,10 @@ interface Validated<T, A> {
 
     val valueOrNull: T?
 
-    infix fun <R> zipWith(
-        validated1: Validated<R, A>,
-    ): Zipper1<T, R, A> =
+    infix fun <R> zipWith(validated1: Validated<R, A>): Zipper1<T, R, A> =
         this zipWith { validated1 }
 
-    infix fun <R> zipWith(
-        validator1: () -> Validated<R, A>,
-    ): Zipper1<T, R, A>
+    infix fun <R> zipWith(validator1: () -> Validated<R, A>): Zipper1<T, R, A>
 
     fun <R, RR> zipWith(
         validated1: Validated<R, A>,
@@ -121,16 +117,6 @@ interface Validated<T, A> {
             validated4
         }
 }
-//
-//interface ThenInvalidateSingle<T, E, A> {
-//
-//    infix fun thenInvalidate(invalidator: (E) -> Validated<T, E>): Validated<T, A>
-//}
-//
-//interface ThenInvalidate<T, A> {
-//
-//    infix fun thenInvalidate(invalidator: (A) -> Validated<T, A>): Validated<T, A>
-//}
 
 interface OrInvalidate<T, E, A> {
 
