@@ -1,7 +1,7 @@
 # White Bear
 
 We are tired of validating outside state. Bad user inputs are the norm.  and bad
-data, especially test data, must be assumed. 
+data, especially testdata data, must be assumed. 
 
 However, we must. But we don't have to add to the pain by validating with exceptions.
 

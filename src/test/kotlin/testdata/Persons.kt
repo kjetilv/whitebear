@@ -1,3 +1,5 @@
+package testdata
+
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.validate
 
@@ -12,7 +14,7 @@ internal val String.isNumeric get() = chars().allMatch(Character::isDigit)
 internal val Int.realisticAge get() = this in 0..120
 internal val Person.licensedOk get() = age >= 18 || driversLicense == null
 
-val personIssues = PersonIssuesErrorModel()
+val personIssues = PersonIssuesErrors()
 
 internal fun personX(name: String, age: Int, license: String?) =
     validate(personIssues) {
@@ -30,7 +32,7 @@ internal fun personX(name: String, age: Int, license: String?) =
             validateThat(license) {
                 it?.isNumeric
             } orInvalidate {
-                BadLicense("Bad license: $it")
+                BadLicense("Bad test.license: $it")
             }
         } flatMap { name: String, age: Int, license: String? ->
             validateThat(Person(name, age, license)) {
@@ -64,7 +66,7 @@ internal fun person0(name: String, age: Int, license: String?) =
                 valid(license) validateThat {
                     it?.isNumeric
                 } orInvalidate {
-                    BadLicense("Bad license: $license")
+                    BadLicense("Bad test.license: $license")
                 }
             )
 
@@ -100,7 +102,7 @@ internal fun person1(name: String, age: Int, license: String?) =
         val validLicense = validateThat(license) {
             it?.isNumeric
         } orInvalidate {
-            BadLicense("Bad license: $it")
+            BadLicense("Bad test.license: $it")
         }
 
         val zipped = validName zipWith validAge zipWith validLicense
@@ -130,7 +132,7 @@ internal fun person1a(name: String, age: Int, license: String?) =
             validateThat(license) {
                 it?.isNumeric
             } orInvalidate {
-                BadLicense("Bad license: $it")
+                BadLicense("Bad test.license: $it")
             }
         ) map ::Person
 
@@ -160,7 +162,7 @@ internal fun person2(name: String, age: Int, license: String?) =
             validateThat(license) {
                 it?.isNumeric
             } orInvalidate {
-                BadLicense("Bad license: $it")
+                BadLicense("Bad test.license: $it")
             }
         } map ::Person validateThat {
             it.licensedOk
@@ -189,7 +191,7 @@ internal fun person3(name: String, age: Int, license: String?) =
         val licVal = validateThat(license) {
             it?.isNumeric
         } orInvalidate {
-            BadLicense("Bad license: $it")
+            BadLicense("Bad test.license: $it")
         }
 
         collect(nameVal, ageVal, licVal) ifValid {
@@ -219,7 +221,7 @@ internal fun person4(name: String, age: Int, license: String?) =
             validateThat(license) {
                 it?.isNumeric
             } orInvalidate {
-                BadLicense("Bad license: $it")
+                BadLicense("Bad test.license: $it")
             }
         ) ifValid {
             validateThat(Person(name, age, license)) {

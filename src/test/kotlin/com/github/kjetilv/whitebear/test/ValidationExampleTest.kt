@@ -1,9 +1,31 @@
+package com.github.kjetilv.whitebear.test
+
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import testdata.BadAge
+import testdata.BadCombo
+import testdata.BadLicense
+import testdata.BadName
+import testdata.Person
+import testdata.PersonIssues
+import testdata.TheBadness
+import testdata.age
+import testdata.ageX
+import testdata.license
+import testdata.licenseX
+import testdata.name
+import testdata.nameX
+import testdata.person0
+import testdata.person1
+import testdata.person1a
+import testdata.person2
+import testdata.person3
+import testdata.person4
+import testdata.personX
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -105,8 +127,8 @@ class RestTest {
     fun `so it goes`() {
         println(RestResrouce().hello("biz", "zib"))
 
-//        RestResrouce().hello("foo", "bar")
-//        RestResrouce().hello("biz", "zibb")
+//        test.RestResrouce().hello("foo", "bar")
+//        test.RestResrouce().hello("biz", "zibb")
     }
 }
 

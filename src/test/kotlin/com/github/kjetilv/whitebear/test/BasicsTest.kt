@@ -1,11 +1,17 @@
 @file:Suppress("SameParameterValue")
 
+package com.github.kjetilv.whitebear.test
+
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.failureList
 import com.github.kjetilv.whitebear.simpleFailureModel
 import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import testdata.LotsOfStuff
+import testdata.StringAndInt
+import testdata.StringIntAndBool
+import testdata.StringIntBoolAndLong
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,7 +22,13 @@ internal val errorStrings = failureList<String>()
 class BasicsTest {
 
     private fun invalidMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") map { it + "str" } validateThat { false } orInvalidate { error }
+        valid("str") map {
+            it + "str"
+        } validateThat {
+            false
+        } orInvalidate {
+            error
+        }
     }
 
     private fun validMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
@@ -33,7 +45,7 @@ class BasicsTest {
 
     @Test
     fun map() {
-        assertFalse { invalidMap("Oops").valid }
+        assertFalse { invalidMap("Oops, it was valid!").valid }
         assertContains(invalidMap("Oops").error, "Oops")
     }
 
@@ -225,7 +237,7 @@ class BasicsTest {
             valid("foo") zipWith {
                 valid(16)
             }
-        } map ::Twofer
+        } map ::StringAndInt
         assertTrue { validThree.valid }
     }
 
@@ -235,7 +247,7 @@ class BasicsTest {
             s1 + s2
         }) {
             valid("foo") zipWith valid(16)
-        } map ::Twofer
+        } map ::StringAndInt
         assertTrue { validFour.valid }
     }
 
@@ -249,7 +261,7 @@ class BasicsTest {
             } zipWith {
                 valid(true)
             }
-        } map ::Threefer
+        } map ::StringIntAndBool
         assertTrue { validThree.valid }
     }
 
@@ -262,7 +274,7 @@ class BasicsTest {
                 valid(16),
                 valid(true),
             )
-        } map ::Threefer
+        } map ::StringIntAndBool
         assertTrue { validFour.valid }
     }
 
@@ -278,7 +290,7 @@ class BasicsTest {
             } zipWith {
                 valid(System.currentTimeMillis())
             }
-        } map ::Fourer
+        } map ::StringIntBoolAndLong
         assertTrue { validFour.valid }
     }
 
@@ -292,7 +304,7 @@ class BasicsTest {
             } zipWith {
                 valid(true)
             } zipWith (valid(System.currentTimeMillis()))
-        } map ::Fourer
+        } map ::StringIntBoolAndLong
         assertTrue { validFour.valid }
     }
 
@@ -302,7 +314,7 @@ class BasicsTest {
             s1 + s2
         }) {
             valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()))
-        } map ::Fourer
+        } map ::StringIntBoolAndLong
         assertTrue { validFour.valid }
     }
 
@@ -319,7 +331,7 @@ class BasicsTest {
                 valid(System.currentTimeMillis())
             } zipWith {
                 valid('c')
-            } map ::Fiver
+            } map ::LotsOfStuff
         }
 
         assertTrue { validFour.valid }
@@ -338,7 +350,7 @@ class BasicsTest {
                 valid(System.currentTimeMillis())
             } zipWith {
                 valid('c')
-            } map ::Fiver
+            } map ::LotsOfStuff
         }
 
         assertTrue { validFour.valid }
@@ -355,7 +367,7 @@ class BasicsTest {
                 valid(true)
             } zipWith {
                 valid(System.currentTimeMillis())
-            } zipWith (valid('c')) map ::Fiver
+            } zipWith (valid('c')) map ::LotsOfStuff
         }
 
         assertTrue { validFour.valid }
@@ -366,7 +378,7 @@ class BasicsTest {
         val validFour = validate(simpleFailureModel("") { s1, s2 ->
             s1 + s2
         }) {
-            valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()), valid('c')) map ::Fiver
+            valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()), valid('c')) map ::LotsOfStuff
         }
 
         assertTrue { validFour.valid }

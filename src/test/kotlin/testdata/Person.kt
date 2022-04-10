@@ -1,4 +1,6 @@
-import com.github.kjetilv.whitebear.ErrorModel
+package testdata
+
+import com.github.kjetilv.whitebear.Errors
 
 data class Person(val name: String, val age: Int, val driversLicense: String? = null)
 
@@ -7,9 +9,9 @@ data class PersonIssues(internal val personIssues: List<PersonIssue> = emptyList
     internal val empty get() = personIssues.isEmpty()
 }
 
-class PersonIssuesErrorModel : ErrorModel<PersonIssue, PersonIssues> {
+class PersonIssuesErrors : Errors<PersonIssue, PersonIssues> {
 
-    override val empty: PersonIssues = PersonIssues()
+    override val empty = PersonIssues()
 
     override fun add(aggregator: PersonIssues, error: PersonIssue) =
         PersonIssues(aggregator.personIssues + error)

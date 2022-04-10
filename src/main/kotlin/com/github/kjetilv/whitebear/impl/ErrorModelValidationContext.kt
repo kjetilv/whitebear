@@ -2,7 +2,7 @@
 
 package com.github.kjetilv.whitebear.impl
 
-import com.github.kjetilv.whitebear.ErrorModel
+import com.github.kjetilv.whitebear.Errors
 import com.github.kjetilv.whitebear.OrInvalidate
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.ValidationContext
@@ -11,15 +11,14 @@ import com.github.kjetilv.whitebear.Zipper2
 import com.github.kjetilv.whitebear.Zipper3
 import com.github.kjetilv.whitebear.Zipper4
 
-@Suppress("UNCHECKED_CAST")
-internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorModel<E, A>) : ValidationContext<E, A> {
+internal class ErrorModelValidationContext<E, A>(private val errors: Errors<E, A>) : ValidationContext<E, A> {
 
     internal fun flattenValidated(vals: List<Validated<*, A>>) =
         vals.map { it.error }
             .reduce { aggregator1: A, aggregator2: A ->
-                errorModel.combine(aggregator1, aggregator2)
+                errors.combine(aggregator1, aggregator2)
             }.takeUnless {
-                errorModel isEmpty it
+                errors isEmpty it
             }
 
     override fun <T> valid(value: T): Validated<T, A> = valid { value }
@@ -28,33 +27,34 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
     override fun <T> invalid(vararg failures: E): Validated<T, A> =
         Invalid(failures.toList()
-            .foldRight(errorModel.empty) { error, aggregator ->
-                errorModel.add(aggregator, error)
+            .foldRight(errors.empty) { error, aggregator ->
+                errors.add(aggregator, error)
             })
 
-    override fun <T> invalid(failure: () -> E): Validated<T, A> = Invalid(errorModel.singleton(failure()))
+    override fun <T> invalid(failure: () -> E): Validated<T, A> = Invalid(errors.singleton(failure()))
 
     override fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A> =
         Valid(value) validateThat test
 
     override fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A> =
-        this.asInternal validateThat test
+        asInternal validateThat test
 
     override fun <T> Validated<T, A>.withViolation(violation: (T) -> E?): Validated<T, A> =
-        this.asInternal applyViolation violation
+        asInternal applyViolation violation
 
     override fun <T> Validated<T, A>.withViolations(violations: (T) -> A?): Validated<T, A> =
-        this.asInternal applyViolations violations
+        asInternal applyViolations violations
 
     override fun collect(vararg validated: Validated<*, A>): Validated<Any, A> =
         flattenValidated(validated.toList())?.let<A, Invalid<Any>> { Invalid(it) } ?: JustValid()
 
     override fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A> =
-        if (valid) this else Invalid(errorModel.add(error, errorProvider()))
-
-    internal val <T> Validated<T, A>.asInternal get() = this as AbstractValidated<T>
+        if (valid) this else Invalid(errors.add(error, errorProvider()))
 
     @Suppress("UNCHECKED_CAST")
+    internal val <T> Validated<T, A>.asInternal get() =
+        this as AbstractValidated<T>
+
     internal abstract inner class AbstractValidated<T> : Validated<T, A> {
 
         internal abstract infix fun applyViolations(violations: (T) -> A?): Validated<T, A>
@@ -76,13 +76,12 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override val value: T get() = throw IllegalStateException("$this")
 
-        override val error = errorModel.empty
+        override val error = errors.empty
 
         override fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E, A> =
             throw IllegalStateException("$this")
 
-        override fun <R> map(mapping: (T) -> R): Validated<R, A> =
-            throw IllegalStateException("$this")
+        override fun <R> map(mapping: (T) -> R): Validated<R, A> = throw IllegalStateException("$this")
 
         override fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A> =
             throw IllegalStateException("$this")
@@ -93,14 +92,14 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun applyViolations(violations: (T) -> A?): Invalid<T> =
             throw IllegalStateException("$this")
 
-        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
+        override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> =
+            validator()
 
         override fun valueOr(errorConsumer: (A) -> Nothing) =
             throw IllegalStateException("$this")
 
-        override val valueOrNull: Nothing
-            get() =
-                throw IllegalStateException("$this")
+        override val valueOrNull: Nothing get() =
+            throw IllegalStateException("$this")
 
         override fun <R> zipWith(validator: () -> Validated<R, A>): Zipper1<T, R, A> =
             throw IllegalStateException("$this")
@@ -118,7 +117,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override val value get() = item
 
-        override val error = errorModel.empty
+        override val error = errors.empty
 
         override fun <R> map(mapping: (T) -> R): Validated<R, A> = Valid(mapping(item))
 
@@ -127,11 +126,14 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> = validator()
 
         override fun applyViolations(violations: (T) -> A?): Validated<T, A> =
-            violations(item)?.let { Invalid(it) } ?: this
+            violations(item)
+                ?.takeIf { errors isNotEmpty it }
+                ?.let { Invalid(it) }
+                ?: this
 
         override fun applyViolation(violation: (T) -> E?): Validated<T, A> =
             violation(item)
-                ?.let { Invalid(errorModel singleton it) }
+                ?.let { Invalid(errors singleton it) }
                 ?: this
 
         override fun valueOr(errorConsumer: (A) -> Nothing): T = item
@@ -142,7 +144,7 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
             object : OrInvalidate<T, E, A> {
 
                 override fun orInvalidate(invalidator: (T) -> E): Validated<T, A> =
-                    if (isValid(item) == true) this@Valid else Invalid(errorModel.add(error, invalidator(item)))
+                    if (isValid(item) == true) this@Valid else Invalid(errors.add(error, invalidator(item)))
             }
 
         override fun <R> zipWith(validator0: () -> Validated<R, A>) =
@@ -313,6 +315,10 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
     internal inner class Invalid<T>(internal val validationError: A) : AbstractValidated<T>() {
 
+        init {
+            println(this)
+        }
+
         override val valid: Boolean = false
 
         override val invalid: Boolean = true
@@ -330,23 +336,25 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
         override fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A> =
             this.retyped()
 
-        override fun applyViolations(violations: (T) -> A?): Validated<T, A> = this
+        override fun applyViolations(violations: (T) -> A?): Validated<T, A> =
+            this
 
-        override fun applyViolation(violation: (T) -> E?): Validated<T, A> = this
+        override fun applyViolation(violation: (T) -> E?): Validated<T, A> =
+            this
 
         override fun valueOr(errorConsumer: (A) -> Nothing): Nothing =
             errorConsumer.invoke(validationError)
 
-        override val valueOrNull: T = value
+        override val valueOrNull: T? = null
 
         override fun <R> zipWith(validator1: () -> Validated<R, A>): Zipper1<T, R, A> =
             object : Zipper1<T, R, A> {
 
                 override fun <V> map(combiner: (T, R) -> V): Validated<V, A> =
-                    Invalid(errorModel.combine(validationError, validator1().error))
+                    Invalid(errors.combine(validationError, validator1().error))
 
                 override fun <V> flatMap(combiner: (T, R) -> Validated<V, A>): Validated<V, A> =
-                    Invalid(errorModel.combine(validationError, validator1().error))
+                    Invalid(errors.combine(validationError, validator1().error))
 
                 override val sum: Validated<*, A> get() = sum(validator1())
 
@@ -408,9 +416,9 @@ internal class ErrorModelValidationContext<E, A>(private val errorModel: ErrorMo
 
         override fun toString() =
             "${javaClass.simpleName}[${
-                errorModel str error
+                errors str error
             }]"
     }
 
-    override fun toString() = "${javaClass.simpleName}[$errorModel]"
+    override fun toString() = "${javaClass.simpleName}[$errors]"
 }
