@@ -28,24 +28,27 @@ class BeanValTest {
     }
 
     @Test
+    fun test_context() {
+
+        val jakartaValidation= JakartaValidation()
+
+        val validated= jakartaValidation validate X(3)
+    }
+
+    @Test
     fun test_integrate() {
 
         val jakartaValidation = JakartaValidation()
 
-        val bad1 = jakartaValidation validateItem X(3)
+        val bad1 = jakartaValidation validate X(3)
 
         assertFalse { bad1.valid }
 
         val item = X(1, "sdfsdf")
 
-        jakartaValidation(item) {
-            valid(item)
-        }.apply {
-            assertTrue { valid }
-        }
+        assertTrue { (jakartaValidation validate item).valid }
 
-        val validated = jakartaValidation validateItem item
-        validated
+        (jakartaValidation validate item)
             .apply {
                 assertTrue { valid }
             }
@@ -56,7 +59,7 @@ class BeanValTest {
                 assertTrue { valid }
             }
 
-        val simplr = jakartaValidation validateItem X(1)
+        val simplr = jakartaValidation validate X(1)
         assertFalse(simplr.valid)
     }
 }

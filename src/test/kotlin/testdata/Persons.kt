@@ -14,28 +14,30 @@ internal val String.isNumeric get() = chars().allMatch(Character::isDigit)
 internal val Int.realisticAge get() = this in 0..120
 internal val Person.licensedOk get() = age >= 18 || driversLicense == null
 
-val personIssues = PersonIssuesErrors()
+val personalIssues = PersonalIssuesErrorProcessor()
 
 internal fun personX(name: String, age: Int, license: String?) =
-    validate(personIssues) {
-        valid(name) map { it.trim() } validateThat {
+    validate(personalIssues) {
+        valid(name) map {
+            it.trim()
+        } validIf {
             it.startsUppercased
         } orInvalidate {
             BadName("Name must start with uppercase: $it")
         } zipWith {
-            validateThat(age) {
+            valid(age) validIf {
                 it.realisticAge
             } orInvalidate {
                 BadAge("Invalid age: $it")
             }
         } zipWith {
-            validateThat(license) {
+            validIf(license) {
                 it?.isNumeric
             } orInvalidate {
                 BadLicense("Bad test.license: $it")
             }
         } flatMap { name: String, age: Int, license: String? ->
-            validateThat(Person(name, age, license)) {
+            validIf(Person(name, age, license)) {
                 it.licensedOk
             } orInvalidate {
                 BadCombo("Too young to drive: $it")
@@ -46,24 +48,24 @@ internal fun personX(name: String, age: Int, license: String?) =
     }
 
 internal fun person0(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
 
         val inputValidations =
             collect(
 
-                valid(name) validateThat {
+                valid(name) validIf {
                     it.toCharArray().firstOrNull()?.isUpperCase()
                 } orInvalidate {
                     BadName("Name must start with uppercase: $name")
                 },
 
-                valid(age) validateThat {
+                valid(age) validIf {
                     it.realisticAge
                 } orInvalidate {
                     BadAge("Invalid age: $age")
                 },
 
-                valid(license) validateThat {
+                valid(license) validIf {
                     it?.isNumeric
                 } orInvalidate {
                     BadLicense("Bad test.license: $license")
@@ -73,7 +75,7 @@ internal fun person0(name: String, age: Int, license: String?) =
         val validatedPerson =
             inputValidations ifValid {
                 valid(Person(name, age, license))
-            } validateThat {
+            } validIf {
                 it.licensedOk
             } orInvalidate {
                 BadCombo("Too young to drive: $it")
@@ -85,21 +87,21 @@ internal fun person0(name: String, age: Int, license: String?) =
     }
 
 internal fun person1(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
 
-        val validName = validateThat(name) {
+        val validName = validIf(name) {
             it.startsUppercased
         } orInvalidate {
             BadName("Name must start with uppercase: $it")
         }
 
-        val validAge: Validated<Int, PersonIssues> = validateThat(age) {
+        val validAge: Validated<Int, PersonalIssues> = validIf(age) {
             it.realisticAge
         } orInvalidate {
             BadAge("Invalid age: $it")
         }
 
-        val validLicense = validateThat(license) {
+        val validLicense = validIf(license) {
             it?.isNumeric
         } orInvalidate {
             BadLicense("Bad test.license: $it")
@@ -107,7 +109,7 @@ internal fun person1(name: String, age: Int, license: String?) =
 
         val zipped = validName zipWith validAge zipWith validLicense
 
-        zipped map ::Person validateThat {
+        zipped map ::Person validIf {
             it.licensedOk
         } orInvalidate {
             BadCombo("Too young to drive: $validName")
@@ -117,26 +119,26 @@ internal fun person1(name: String, age: Int, license: String?) =
     }
 
 internal fun person1a(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
 
-        val validatedPerson = (validateThat(name) {
+        val validatedPerson = (validIf(name) {
             it.startsUppercased
         } orInvalidate {
             BadName("Name must start with uppercase: $it")
         }).zipWith(
-            validateThat(age) {
+            validIf(age) {
                 it.realisticAge
             } orInvalidate {
                 BadAge("Invalid age: $it")
             },
-            validateThat(license) {
+            validIf(license) {
                 it?.isNumeric
             } orInvalidate {
                 BadLicense("Bad test.license: $it")
             }
         ) map ::Person
 
-        validatedPerson validateThat {
+        validatedPerson validIf {
             it.licensedOk
         } orInvalidate {
             BadCombo("Too young to drive: $validatedPerson")
@@ -146,25 +148,25 @@ internal fun person1a(name: String, age: Int, license: String?) =
     }
 
 internal fun person2(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
 
-        validateThat(name) {
+        validIf(name) {
             it.startsUppercased
         } orInvalidate {
             BadName("Name must start with uppercase: $it")
         } zipWith {
-            validateThat(age) {
+            validIf(age) {
                 it.realisticAge
             } orInvalidate {
                 BadAge("Invalid age: $it")
             }
         } zipWith {
-            validateThat(license) {
+            validIf(license) {
                 it?.isNumeric
             } orInvalidate {
                 BadLicense("Bad test.license: $it")
             }
-        } map ::Person validateThat {
+        } map ::Person validIf {
             it.licensedOk
         } orInvalidate {
             BadCombo("Too young to drive: $it")
@@ -174,28 +176,28 @@ internal fun person2(name: String, age: Int, license: String?) =
     }
 
 internal fun person3(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
 
-        val nameVal = validateThat(name) {
+        val nameVal = validIf(name) {
             it.startsUppercased
         } orInvalidate {
             BadName("Name must start with uppercase: $it")
         }
 
-        val ageVal = validateThat(age) {
+        val ageVal = validIf(age) {
             it.realisticAge
         } orInvalidate {
             BadAge("Invalid age: $it")
         }
 
-        val licVal = validateThat(license) {
+        val licVal = validIf(license) {
             it?.isNumeric
         } orInvalidate {
             BadLicense("Bad test.license: $it")
         }
 
         collect(nameVal, ageVal, licVal) ifValid {
-            validateThat(Person(name, age, license)) {
+            valid(Person(name, age, license)) validIf {
                 it.licensedOk
             } orInvalidate {
                 BadCombo("Too young to drive: $it")
@@ -206,25 +208,25 @@ internal fun person3(name: String, age: Int, license: String?) =
     }
 
 internal fun person4(name: String, age: Int, license: String?) =
-    validate(personIssues) {
+    validate(personalIssues) {
         collect(
-            validateThat(name) {
+            validIf(name) {
                 it.startsUppercased
             } orInvalidate {
                 BadName("Name must start with uppercase: $it")
             },
-            validateThat(age) {
+            validIf(age) {
                 it.realisticAge
             } orInvalidate {
                 BadAge("Invalid age: $it")
             },
-            validateThat(license) {
+            validIf(license) {
                 it?.isNumeric
             } orInvalidate {
                 BadLicense("Bad test.license: $it")
             }
         ) ifValid {
-            validateThat(Person(name, age, license)) {
+            validIf(Person(name, age, license)) {
                 it.licensedOk
             } orInvalidate {
                 BadCombo("Too young to drive: $it")

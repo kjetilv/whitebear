@@ -10,9 +10,9 @@ interface ValidationContext<E, A> {
 
     fun <T> invalid(failures: () -> E): Validated<T, A>
 
-    fun <T> validateThat(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A>
+    fun <T> validIf(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
-    infix fun <T> Validated<T, A>.validateThat(test: (T) -> Boolean?): OrInvalidate<T, E, A>
+    infix fun <T> Validated<T, A>.validIf(test: (T) -> Boolean?): OrInvalidate<T, E, A>
 
     infix fun <T> Validated<T, A>.withViolations(violations: (T) -> A?): Validated<T, A>
 
