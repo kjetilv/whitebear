@@ -1,11 +1,11 @@
 package com.github.kjetilv.whitebear.beanvalidation
 
-import com.github.kjetilv.whitebear.SimpleErrorProcessor
+import com.github.kjetilv.whitebear.ErrorProcessor
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.ValidationContext
 import com.github.kjetilv.whitebear.Validator
-import com.github.kjetilv.whitebear.impl.ErrorModelValidationContext
-import com.github.kjetilv.whitebear.simpleErrorList
+import com.github.kjetilv.whitebear.errorList
+import com.github.kjetilv.whitebear.errorProcessorValidationContext
 import com.github.kjetilv.whitebear.validate
 import jakarta.validation.ConstraintViolation
 import jakarta.validation.Validation as JakartaBeansValidation
@@ -13,7 +13,7 @@ import jakarta.validation.Validator as JakartaBeansValidator
 
 class JakartaValidation(
     private val jakartaBeansValidator: JakartaBeansValidator = defaultJakartaValidator,
-) : Validator<List<ValidatedBean<*>>, List<ValidatedBean<*>>> {
+) : Validator<List<ValidatedBean<*>>> {
 
     companion object {
 
@@ -24,8 +24,8 @@ class JakartaValidation(
     operator fun <T> invoke(action: ValidatedBeansContext.() -> Validated<T, List<ValidatedBean<T>>>) =
         validate(multiViolations, action)
 
-    override fun <R> validate(action: ValidationContext<List<ValidatedBean<*>>, List<ValidatedBean<*>>>.() -> R): R =
-        action(errorModelValidationContext)
+    override fun <R> validate(action: ValidationContext<List<ValidatedBean<*>>>.() -> R): R =
+        action(validationContext)
 
     infix fun <T> validate(item: T): Validated<T, List<ValidatedBean<*>>> =
         validate(multiViolations) {
@@ -34,11 +34,10 @@ class JakartaValidation(
             }
         }
 
-    private val multiViolations: SimpleErrorProcessor<List<ValidatedBean<*>>> =
-        simpleErrorList()
+    private val multiViolations: ErrorProcessor<List<ValidatedBean<*>>> = errorList()
 
-    private val errorModelValidationContext: ValidationContext<List<ValidatedBean<*>>, List<ValidatedBean<*>>> =
-        ErrorModelValidationContext(multiViolations)
+    private val validationContext: ValidationContext<List<ValidatedBean<*>>> =
+        errorProcessorValidationContext(multiViolations)
 
     private infix fun <R> ValidatedBeansContext.violations(r: R): List<ValidatedBean<R>> =
         jakartaBeansValidator.validate(r)
@@ -49,7 +48,7 @@ class JakartaValidation(
             }
 }
 
-typealias ValidatedBeansContext = ValidationContext<List<ValidatedBean<*>>, List<ValidatedBean<*>>>
+typealias ValidatedBeansContext = ValidationContext<List<ValidatedBean<*>>>
 
 data class ValidatedBean<T>(val bean: T, val violations: List<ConstraintViolation<T>>)
 

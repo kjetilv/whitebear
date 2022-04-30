@@ -10,47 +10,18 @@ package com.github.kjetilv.whitebear
  * As an example, consider {@link String} as the validation type, representing an error message, and
  * {@link List} of strings as the aggregate, representing several.
  *
- * @param E The type for a single validation
- * @param A The aggregate os several validations.
+ * @param E The error type
  */
-interface ErrorProcessor<E, A> {
+interface ErrorProcessor<E> {
 
     /**
      * What does the empty aggegrated type look like?
      */
-    val empty: A
+    val empty: E
 
     /**
      * How do we combine two aggregates into one?
      */
-    fun combine(aggregator1: A, aggregator2: A): A
-
-    infix fun wrap(error: E): A
-
-    /**
-     * Is this aggregator empty? Suggested implementation: Equal to {@link #empty}.
-     */
-    infix fun isEmpty(aggregator: A): Boolean = aggregator == empty
-
-    infix fun isNotEmpty(aggregator: A): Boolean = !isEmpty(aggregator)
-
-    /**
-     * How do we add a validation error to the aggregate?
-     */
-    fun add(aggregator: A, error: E): A = combine(aggregator, wrap(error))
-
-    /**
-     * How can we print the aggregate?  Suggested implementation: Its {@link Object#toString}.
-     */
-    infix fun str(aggregator: A) = "$aggregator"
+    fun combine(error1: E, error2: E): E
 }
 
-/**
- * A simple {@link ErrorModel error model} can be used when the validation type is the same as the
- * aggregate, eg. when a {@link String} represents a validation failure and a {@link String} also represents
- * the aggregate, created by concatenating strings.
- */
-interface SimpleErrorProcessor<E> : ErrorProcessor<E, E> {
-
-    override fun wrap(error: E) = error
-}

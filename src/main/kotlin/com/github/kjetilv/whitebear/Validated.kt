@@ -1,86 +1,80 @@
 package com.github.kjetilv.whitebear
 
-interface ValidationContext<E, A> {
+interface ValidationContext<E> {
 
-    fun <T> valid(value: T): Validated<T, A>
+    fun <T> valid(value: T): Validated<T, E>
 
-    fun <T> valid(value: () -> T): Validated<T, A>
+    fun <T> valid(value: () -> T): Validated<T, E>
 
-    fun <T> invalid(vararg failures: E): Validated<T, A>
+    fun <T> invalid(failures: E): Validated<T, E>
 
-    fun <T> invalid(failures: () -> E): Validated<T, A>
+    fun <T> invalid(failures: () -> E): Validated<T, E>
 
-    fun <T> validIf(value: T, test: (T) -> Boolean?): OrInvalidate<T, E, A>
+    fun <T> validIf(value: T, test: (T) -> Boolean?): OrInvalidate<T, E>
 
-    infix fun <T> Validated<T, A>.validIf(test: (T) -> Boolean?): OrInvalidate<T, E, A>
+    infix fun <T> Validated<T, E>.validIf(test: (T) -> Boolean?): OrInvalidate<T, E>
 
-    infix fun <T> Validated<T, A>.withViolations(violations: (T) -> A?): Validated<T, A>
+    infix fun <T> Validated<T, E>.withViolations(violations: (T) -> E?): Validated<T, E>
 
-    infix fun <T> Validated<T, A>.withViolation(violation: (T) -> E?): Validated<T, A>
+    infix fun <T> Validated<T, E>.annotateInvalidated(errorProvider: () -> E): Validated<T, E>
 
-    infix fun <T> Validated<T, A>.annotateInvalidated(errorProvider: () -> E): Validated<T, A>
-
-    fun collect(vararg validated: Validated<*, A>): Validated<Any, A>
+    fun collect(vararg validated: Validated<*, E>): Validated<Any, E>
 
     fun <T, R> zip(
-        validated0: Validated<T, A>,
-        validated1: Validated<R, A>,
-    ): Zipper1<T, R, A> =
+        validated0: Validated<T, E>,
+        validated1: Validated<R, E>,
+    ): Zipper1<T, R, E> =
         validated0 zipWith validated1
 
     fun <T, R, RR> zip(
-        validated0: Validated<T, A>,
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
-    ): Zipper2<T, R, RR, A> =
+        validated0: Validated<T, E>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
+    ): Zipper2<T, R, RR, E> =
         validated0.zipWith(validated1, validated2)
 
     fun <T, R, RR, RRR> zip(
-        validated0: Validated<T, A>,
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
-        validated3: Validated<RRR, A>,
-    ): Zipper3<T, R, RR, RRR, A> =
+        validated0: Validated<T, E>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
+        validated3: Validated<RRR, E>,
+    ): Zipper3<T, R, RR, RRR, E> =
         validated0.zipWith(validated1, validated2, validated3)
 
     fun <T, R, RR, RRR, RRRR> zip(
-        validated0: Validated<T, A>,
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
-        validated3: Validated<RRR, A>,
-        validated4: Validated<RRRR, A>,
-    ): Zipper4<T, R, RR, RRR, RRRR, A> =
+        validated0: Validated<T, E>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
+        validated3: Validated<RRR, E>,
+        validated4: Validated<RRRR, E>,
+    ): Zipper4<T, R, RR, RRR, RRRR, E> =
         validated0.zipWith(validated1, validated2, validated3, validated4)
 }
 
-interface Validated<T, A> {
-
-    val value: T
-
-    val error: A
+sealed interface Validated<T, E> {
 
     val valid: Boolean
 
     val invalid: Boolean
 
-    infix fun <R> map(mapping: (T) -> R): Validated<R, A>
+    infix fun <R> map(mapping: (T) -> R): Validated<R, E>
 
-    infix fun <R> flatMap(mapping: (T) -> Validated<R, A>): Validated<R, A>
+    infix fun <R> flatMap(mapping: (T) -> Validated<R, E>): Validated<R, E>
 
-    infix fun <R> ifValid(validator: () -> Validated<R, A>): Validated<R, A>
+    infix fun <R> ifValid(validator: () -> Validated<R, E>): Validated<R, E>
 
-    infix fun valueOr(errorConsumer: (A) -> Nothing): T
+    infix fun valueOr(errorConsumer: (E) -> Nothing): T
 
     val valueOrNull: T?
 
-    infix fun <R> zipWith(validated1: Validated<R, A>): Zipper1<T, R, A> =
+    infix fun <R> zipWith(validated1: Validated<R, E>): Zipper1<T, R, E> =
         this zipWith { validated1 }
 
-    infix fun <R> zipWith(validator1: () -> Validated<R, A>): Zipper1<T, R, A>
+    infix fun <R> zipWith(validator1: () -> Validated<R, E>): Zipper1<T, R, E>
 
     fun <R, RR> zipWith(
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
     ) =
         this zipWith {
             validated1
@@ -89,9 +83,9 @@ interface Validated<T, A> {
         }
 
     fun <R, RR, RRR> zipWith(
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
-        validated3: Validated<RRR, A>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
+        validated3: Validated<RRR, E>,
     ) =
         this zipWith {
             validated1
@@ -102,10 +96,10 @@ interface Validated<T, A> {
         }
 
     fun <R, RR, RRR, RRRR> zipWith(
-        validated1: Validated<R, A>,
-        validated2: Validated<RR, A>,
-        validated3: Validated<RRR, A>,
-        validated4: Validated<RRRR, A>,
+        validated1: Validated<R, E>,
+        validated2: Validated<RR, E>,
+        validated3: Validated<RRR, E>,
+        validated4: Validated<RRRR, E>,
     ) =
         this zipWith {
             validated1
@@ -118,55 +112,65 @@ interface Validated<T, A> {
         }
 }
 
-interface OrInvalidate<T, E, A> {
+interface Valid<T, E> : Validated<T, E> {
 
-    infix fun orInvalidate(invalidator: (T) -> E): Validated<T, A>
+    val value: T
 }
 
-interface Zipper1<T, R, A> {
+interface Invalid<T, E> : Validated<T, E> {
 
-    infix fun <RR> zipWith(validated: Validated<RR, A>) = zipWith { validated }
-
-    infix fun <RR> zipWith(validator: () -> Validated<RR, A>): Zipper2<T, R, RR, A>
-
-    infix fun <O> map(combiner: (T, R) -> O): Validated<O, A>
-
-    infix fun <O> flatMap(combiner: (T, R) -> Validated<O, A>): Validated<O, A>
-
-    val sum: Validated<*, A>
+    val error: E
 }
 
-interface Zipper2<T, R, RR, A> {
+interface OrInvalidate<T, E> {
 
-    infix fun <RRR> zipWith(validated: Validated<RRR, A>) = zipWith { validated }
-
-    infix fun <RRR> zipWith(validator: () -> Validated<RRR, A>): Zipper3<T, R, RR, RRR, A>
-
-    infix fun <O> map(combiner: (T, R, RR) -> O): Validated<O, A>
-
-    infix fun <O> flatMap(combiner: (T, R, RR) -> Validated<O, A>): Validated<O, A>
-
-    val sum: Validated<*, A>
+    infix fun orInvalidate(invalidator: (T) -> E): Validated<T, E>
 }
 
-interface Zipper3<T, R, RR, RRR, A> {
+interface Zipper1<T, R, E> {
 
-    infix fun <RRRR> zipWith(validated: Validated<RRRR, A>) = zipWith { validated }
+    infix fun <RR> zipWith(validated: Validated<RR, E>) = zipWith { validated }
 
-    infix fun <RRRR> zipWith(validator: () -> Validated<RRRR, A>): Zipper4<T, R, RR, RRR, RRRR, A>
+    infix fun <RR> zipWith(validator: () -> Validated<RR, E>): Zipper2<T, R, RR, E>
 
-    infix fun <O> map(combiner: (T, R, RR, RRR) -> O): Validated<O, A>
+    infix fun <O> map(combiner: (T, R) -> O): Validated<O, E>
 
-    infix fun <O> flatMap(combiner: (T, R, RR, RRR) -> Validated<O, A>): Validated<O, A>
+    infix fun <O> flatMap(combiner: (T, R) -> Validated<O, E>): Validated<O, E>
 
-    val sum: Validated<*, A>
+    val sum: Validated<*, E>
 }
 
-interface Zipper4<T, R, RR, RRR, RRRR, A> {
+interface Zipper2<T, R, RR, E> {
 
-    infix fun <O> map(combiner: (T, R, RR, RRR, RRRR) -> O): Validated<O, A>
+    infix fun <RRR> zipWith(validated: Validated<RRR, E>) = zipWith { validated }
 
-    infix fun <O> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<O, A>): Validated<O, A>
+    infix fun <RRR> zipWith(validator: () -> Validated<RRR, E>): Zipper3<T, R, RR, RRR, E>
 
-    val sum: Validated<*, A>
+    infix fun <O> map(combiner: (T, R, RR) -> O): Validated<O, E>
+
+    infix fun <O> flatMap(combiner: (T, R, RR) -> Validated<O, E>): Validated<O, E>
+
+    val sum: Validated<*, E>
+}
+
+interface Zipper3<T, R, RR, RRR, E> {
+
+    infix fun <RRRR> zipWith(validated: Validated<RRRR, E>) = zipWith { validated }
+
+    infix fun <RRRR> zipWith(validator: () -> Validated<RRRR, E>): Zipper4<T, R, RR, RRR, RRRR, E>
+
+    infix fun <O> map(combiner: (T, R, RR, RRR) -> O): Validated<O, E>
+
+    infix fun <O> flatMap(combiner: (T, R, RR, RRR) -> Validated<O, E>): Validated<O, E>
+
+    val sum: Validated<*, E>
+}
+
+interface Zipper4<T, R, RR, RRR, RRRR, E> {
+
+    infix fun <O> map(combiner: (T, R, RR, RRR, RRRR) -> O): Validated<O, E>
+
+    infix fun <O> flatMap(combiner: (T, R, RR, RRR, RRRR) -> Validated<O, E>): Validated<O, E>
+
+    val sum: Validated<*, E>
 }

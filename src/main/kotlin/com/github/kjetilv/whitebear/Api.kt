@@ -1,77 +1,49 @@
 package com.github.kjetilv.whitebear
 
-import com.github.kjetilv.whitebear.impl.ErrorModelValidationContext
-
-fun <E, A, R> validate(errorProcessor: ErrorProcessor<E, A>, action: ValidationContext<E, A>.() -> R): R =
+fun <E, R> validate(errorProcessor: ErrorProcessor<E>, action: ValidationContext<E>.() -> R): R =
     validator(errorProcessor) validate action
 
-internal fun <E, A> validator(errorProcessor: ErrorProcessor<E, A>): Validator<E, A> =
+internal fun <E> validator(errorProcessor: ErrorProcessor<E>): Validator<E> =
     DefaultValidator(errorProcessor)
 
-fun <E> errorList(str: (List<E>) -> String = { "$it" }) =
-    errorProcessor<E, List<E>>(
+fun <E> errorList() =
+    errorProcessor<List<E>>(
         empty = emptyList(),
+        combine = List<E>::plus,
         isEmpty = List<E>::isEmpty,
-        str = str,
-        wrap = ::listOf,
     )
 
-/**
- * A {@link SimpleErrorModel}
- */
-fun <E> simpleErrorList(str: (List<E>) -> String = { "$it" }) =
-    simpleErrors(
-        empty = emptyList(),
-        str = str,
-        combine = List<E>::plus
-    )
-
-fun <E> simpleErrors(
+fun <E> errors(
     empty: E,
-    isEmpty: (E) -> Boolean = { it == empty },
-    str: (E) -> String = { "$it" },
     combine: (E, E) -> E,
-): SimpleErrorProcessor<E> = object : SimpleErrorProcessor<E> {
+): ErrorProcessor<E> = object : ErrorProcessor<E> {
 
     override val empty: E = empty
 
-    override fun isEmpty(aggregator: E) =
-        isEmpty(aggregator)
-
-    override fun str(aggregator: E) =
-        str(aggregator)
-
-    override fun combine(aggregator1: E, aggregator2: E): E =
-        combine(aggregator1, aggregator2)
+    override fun combine(error1: E, error2: E): E =
+        combine(error1, error2)
 }
 
-fun <E, A> errorProcessor(
-    empty: A,
-    isEmpty: (A) -> Boolean = { it == empty },
-    str: (A) -> String = { "$it" },
-    wrap: (E) -> A,
-): ErrorProcessor<E, A> = object : ErrorProcessor<E, A> {
+fun <E> errorProcessor(
+    empty: E,
+    combine: (E, E) -> E,
+    isEmpty: (E) -> Boolean = { it == empty },
+): ErrorProcessor<E> = object : ErrorProcessor<E> {
 
-    override val empty: A = empty
+    override val empty: E = empty
 
-    override fun isEmpty(aggregator: A) = isEmpty(aggregator)
-
-    override fun wrap(error: E): A = wrap(error)
-
-    override fun str(aggregator: A) = str(aggregator)
-
-    override fun combine(aggregator1: A, aggregator2: A): A = combine(aggregator1, aggregator2)
+    override fun combine(error1: E, error2: E): E = combine(error1, error2)
 }
 
-internal interface Validator<E, A> {
+internal interface Validator<E> {
 
-    infix fun <R> validate(action: ValidationContext<E, A>.() -> R): R
+    infix fun <R> validate(action: ValidationContext<E>.() -> R): R
 }
 
-internal class DefaultValidator<E, A>(errorProcessor: ErrorProcessor<E, A>) : Validator<E, A> {
+internal class DefaultValidator<E>(errorProcessor: ErrorProcessor<E>) : Validator<E> {
 
-    private val errorModelValidationContext = ErrorModelValidationContext(errorProcessor)
+    private val errorProcessorValidationContext = errorProcessorValidationContext(errorProcessor)
 
-    override fun <R> validate(action: ValidationContext<E, A>.() -> R): R =
-        action(errorModelValidationContext)
+    override fun <R> validate(action: ValidationContext<E>.() -> R): R =
+        action(errorProcessorValidationContext)
 }

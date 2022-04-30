@@ -1,10 +1,12 @@
 package com.github.kjetilv.whitebear.test
 
+import com.github.kjetilv.whitebear.Invalid
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.errorList
 import com.github.kjetilv.whitebear.validate
 import org.assertj.core.api.AssertionsForInterfaceTypes.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import testdata.BadAge
 import testdata.BadCombo
@@ -39,86 +41,131 @@ abstract class ValidationExampleTestCase(val create: (String, Int, String?) -> V
 
     @Test
     fun `bad name`() {
-        val badNamePerson = create(nameX, age, license)
 
-        assertFalse { badNamePerson.valid }
-        assertEquals(2, badNamePerson.error.personalIssues.size)
+        when (val badNamePerson = create(nameX, age, license)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse { badNamePerson.valid }
+                assertEquals(2, badNamePerson.error.personalIssues.size)
 
-        assertThat(badNamePerson.error.personalIssues)
-            .anyMatch { it is BadName }
-            .anyMatch { it is TheBadness }
+                assertThat(badNamePerson.error.personalIssues)
+                    .anyMatch { it is BadName }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badNamePerson" }
+        }
+
     }
 
     @Test
     fun `bad name, age`() {
-        val badNameAgePerson = create(nameX, ageX, license)
-        assertFalse(badNameAgePerson.valid)
-        assertThat(badNameAgePerson.error.personalIssues).hasSize(3)
-            .anyMatch { it is BadName }
-            .anyMatch { it is BadAge }
-            .anyMatch { it is TheBadness }
+        when (val badNameAgePerson = create(nameX, ageX, license)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse(badNameAgePerson.valid)
+                assertThat(badNameAgePerson.error.personalIssues).hasSize(3)
+                    .anyMatch { it is BadName }
+                    .anyMatch { it is BadAge }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badNameAgePerson" }
+        }
     }
 
     @Test
     fun `bad name, license`() {
-        val badNameLicensePerson = create(nameX, age, licenseX)
 
-        assertFalse { badNameLicensePerson.valid }
-        assertThat(badNameLicensePerson.error.personalIssues).hasSize(3)
-            .anyMatch { it is BadName }
-            .anyMatch { it is BadLicense }
-            .anyMatch { it is TheBadness }
+        when (val badNameLicensePerson = create(nameX, age, licenseX)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse { badNameLicensePerson.valid }
+                assertThat(badNameLicensePerson.error.personalIssues).hasSize(3)
+                    .anyMatch { it is BadName }
+                    .anyMatch { it is BadLicense }
+                    .anyMatch { it is TheBadness }
+
+            }
+            else ->
+                fail { "$badNameLicensePerson" }
+        }
     }
 
     @Test
     fun `bad age`() {
-        val badAgePerson = create(name, ageX, license)
 
-        assertFalse { badAgePerson.valid }
-        assertThat(badAgePerson.error.personalIssues).hasSize(2)
-            .anyMatch { it is BadAge }
-            .anyMatch { it is TheBadness }
+        when (val badAgePerson = create(name, ageX, license)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse { badAgePerson.valid }
+                assertThat(badAgePerson.error.personalIssues).hasSize(2)
+                    .anyMatch { it is BadAge }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badAgePerson" }
+        }
     }
 
     @Test
     fun `bad age, license`() {
-        val badAgeLicensePerson = create(name, ageX, licenseX)
-        assertFalse(badAgeLicensePerson.valid)
-        assertThat(badAgeLicensePerson.error.personalIssues).hasSize(3)
-            .anyMatch { it is BadAge }
-            .anyMatch { it is BadLicense }
-            .anyMatch { it is TheBadness }
+
+        when (val badAgeLicensePerson = create(name, ageX, licenseX)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse(badAgeLicensePerson.valid)
+                assertThat(badAgeLicensePerson.error.personalIssues).hasSize(3)
+                    .anyMatch { it is BadAge }
+                    .anyMatch { it is BadLicense }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badAgeLicensePerson" }
+        }
     }
 
     @Test
     fun `bad license`() {
-        val badLicensePerson = create(name, age, licenseX)
-        assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.error.personalIssues).hasSize(2)
-            .anyMatch { it is BadLicense }
-            .anyMatch { it is TheBadness }
+
+        when (val badLicensePerson = create(name, age, licenseX)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse(badLicensePerson.valid)
+                assertThat(badLicensePerson.error.personalIssues).hasSize(2)
+                    .anyMatch { it is BadLicense }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badLicensePerson" }
+        }
     }
 
     @Test
     fun `bad state bad`() {
-        val badLicensePerson = create(name, 16, license)
-        assertFalse(badLicensePerson.valid)
-        assertThat(badLicensePerson.error.personalIssues).hasSize(2)
-            .anyMatch { it is BadCombo }
-            .anyMatch { it is TheBadness }
+
+        when (val badLicensePerson = create(name, 16, license)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse(badLicensePerson.valid)
+                assertThat(badLicensePerson.error.personalIssues).hasSize(2)
+                    .anyMatch { it is BadCombo }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badLicensePerson" }
+        }
     }
 
     @Test
     fun `all bad`() {
-        val badPerson = create(nameX, ageX, licenseX)
-        assertFalse(badPerson.valid)
-        assertThat(badPerson.error.personalIssues).hasSize(4)
-            .anyMatch { it is BadName }
-            .anyMatch { it is BadAge }
-            .anyMatch { it is BadLicense }
-            .anyMatch { it is TheBadness }
-    }
 
+        when (val badPerson = create(nameX, ageX, licenseX)) {
+            is Invalid<Person, PersonalIssues> -> {
+                assertFalse(badPerson.valid)
+                assertThat(badPerson.error.personalIssues).hasSize(4)
+                    .anyMatch { it is BadName }
+                    .anyMatch { it is BadAge }
+                    .anyMatch { it is BadLicense }
+                    .anyMatch { it is TheBadness }
+            }
+            else ->
+                fail { "$badPerson" }
+        }
+    }
 }
 
 class RestTest {
@@ -167,7 +214,7 @@ class RestResrouce {
     fun hello(world: String, greeting: String): String =
         validate(errorList<String>()) {
             serviceLayer.greet(world, greeting) annotateInvalidated {
-                "REST layer failed: $world/$greeting "
+                listOf("REST layer failed: $world/$greeting ")
             } valueOr { errors ->
                 throw IllegalStateException("Failed to greet: ${errors.joinToString(" => ") { it.trim() }}")
             }
@@ -183,9 +230,9 @@ class ServiceLayer {
             } validIf {
                 it != "ouch"
             } orInvalidate {
-                "Not a good response: $it"
+                listOf("Not a good response: $it")
             } annotateInvalidated {
-                "World named $world and greeting $greeting was a no-go"
+                listOf("World named $world and greeting $greeting was a no-go")
             }
         }
 
@@ -194,7 +241,7 @@ class ServiceLayer {
             when (world) {
                 "biz" -> valid(Bizarro(1))
                 "col" -> valid(Collider(2))
-                else -> invalid("No world known as $world")
+                else -> invalid(listOf("No world known as $world"))
             }
         }
 }
@@ -210,9 +257,7 @@ class Bizarro(private val x: Int) : Wrodl() {
             when (greeting) {
                 "zib" -> valid("ok: $x")
                 "zibb" -> valid("ouch: $x")
-                else -> invalid(
-                    "$this $x does not respond to $greeting"
-                )
+                else -> invalid(listOf("$this $x does not respond to $greeting"))
             }
         }
 }
@@ -223,7 +268,7 @@ class Collider(private val y: Int) : Wrodl() {
             when (greeting) {
                 "col" -> valid("ok: $y")
                 "coll" -> valid("ouch: $y")
-                else -> invalid("$this $y does not respond to $greeting")
+                else -> invalid(listOf("$this $y does not respond to $greeting"))
             }
         }
 }

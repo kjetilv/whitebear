@@ -2,10 +2,13 @@
 
 package com.github.kjetilv.whitebear.test
 
+import com.github.kjetilv.whitebear.Invalid
+import com.github.kjetilv.whitebear.Valid
 import com.github.kjetilv.whitebear.Validated
 import com.github.kjetilv.whitebear.errorList
-import com.github.kjetilv.whitebear.simpleErrors
+import com.github.kjetilv.whitebear.errors
 import com.github.kjetilv.whitebear.validate
+import org.assertj.core.api.Assertions.ARRAY_2D
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import testdata.LotsOfStuff
@@ -16,8 +19,9 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
-internal val errorStrings = errorList<String>()
+val errorStrings = errorList<String>()
 
 class BasicsTest {
 
@@ -27,12 +31,12 @@ class BasicsTest {
         } validIf {
             false
         } orInvalidate {
-            error
+            listOf(error)
         }
     }
 
     private fun validMap(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") map { it + "str" } validIf { true } orInvalidate { error }
+        valid("str") map { it + "str" } validIf { true } orInvalidate { listOf(error) }
     }
 
     private fun invalidFlat(error: String): Validated<String, List<String>> =
@@ -42,24 +46,35 @@ class BasicsTest {
             } validIf {
                 false
             } orInvalidate {
-                error
+                listOf(error)
             }
         }
 
     private fun validFlat(error: String): Validated<String, List<String>> = validate(errorStrings) {
-        valid("str") flatMap { valid(it + "str") } validIf { true } orInvalidate { error }
+        valid("str") flatMap { valid(it + "str") } validIf { true } orInvalidate { listOf(error) }
     }
 
     @Test
     fun map() {
-        assertFalse { invalidMap("Oops, it was valid!").valid }
-        assertContains(invalidMap("Oops").error, "Oops")
+        val invalidMap = invalidMap("Oops")
+        when (invalidMap) {
+            is Invalid<String, List<String>> ->
+                assertContains(invalidMap.error, "Oops")
+            else ->
+                fail(invalidMap.toString())
+        }
     }
 
     @Test
     fun flatMap() {
         assertFalse { invalidFlat("Oops flat").valid }
-        assertContains(invalidFlat("Oops flat").error, "Oops flat")
+        when (val it = invalidFlat("Oops flat")) {
+            is Invalid<*, List<String>> -> {
+                assertContains(it.error, "Oops flat")
+            }
+            else ->
+                fail("$it")
+        }
     }
 
     @Test
@@ -67,11 +82,15 @@ class BasicsTest {
         val errors: Validated<Any, List<String>> = validate(errorStrings) {
             collect(invalidMap("0"), invalidFlat("1"))
         }
-
-        assertFalse { errors.valid }
-        assertEquals(2, errors.error.size)
-        assertContains(errors.error, "0")
-        assertContains(errors.error, "1")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(2, errors.error.size)
+                assertContains(errors.error, "0")
+                assertContains(errors.error, "1")
+            }
+            else -> fail("$errors")
+        }
     }
 
     @Test
@@ -80,10 +99,17 @@ class BasicsTest {
             collect(validMap("0"), invalidMap("1"), invalidFlat("2"))
         }
 
-        assertFalse { errors.valid }
-        assertEquals(2, errors.error.size)
-        assertContains(errors.error, "1")
-        assertContains(errors.error, "2")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(2, errors.error.size)
+                assertContains(errors.error,
+                    "1")
+                assertContains(errors.error, "2")
+            }
+            else ->
+                fail(errors.toString())
+        }
     }
 
     @Test
@@ -92,10 +118,16 @@ class BasicsTest {
             collect(invalidMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
 
-        assertFalse { errors.valid }
-        assertEquals(2, errors.error.size)
-        assertContains(errors.error, "Oops")
-        assertContains(errors.error, "Oops flat")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(2, errors.error.size)
+                assertContains(errors.error, "Oops")
+                assertContains(errors.error, "Oops flat")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -104,10 +136,16 @@ class BasicsTest {
             collect(invalidMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 
-        assertFalse { errors.valid }
-        assertEquals(2, errors.error.size)
-        assertContains(errors.error, "Oops")
-        assertContains(errors.error, "Oops flat")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(2, errors.error.size)
+                assertContains(errors.error, "Oops")
+                assertContains(errors.error, "Oops flat")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -115,10 +153,15 @@ class BasicsTest {
         val errors = validate(errorStrings) {
             collect(validMap("Oops"), validMap("Oops"), invalidFlat("Oops flat"))
         }
-
-        assertFalse { errors.valid }
-        assertEquals(1, errors.error.size)
-        assertContains(errors.error, "Oops flat")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(1, errors.error.size)
+                assertContains(errors.error, "Oops flat")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -127,9 +170,15 @@ class BasicsTest {
             collect(invalidMap("Oops"), validMap("Oops"), validMap("Oops"))
         }
 
-        assertFalse { errors.valid }
-        assertEquals(1, errors.error.size)
-        assertContains(errors.error, "Oops")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(1, errors.error.size)
+                assertContains(errors.error, "Oops")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -138,17 +187,27 @@ class BasicsTest {
             collect(validMap("Oops"), invalidFlat("Oops flat"), validMap("Oops"))
         }
 
-        assertFalse { errors.valid }
-        assertEquals(1, errors.error.size)
-        assertContains(errors.error, "Oops flat")
+        when (errors) {
+            is Invalid<Any, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(1, errors.error.size)
+                assertContains(errors.error, "Oops flat")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
     fun zipValids() {
         val validated = validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
-
-        assertTrue { validated.valid }
-        assertEquals("strstr" + "strstr", validated.value)
+        when (validated) {
+            is Valid<String, List<String>> -> {
+                assertTrue { validated.valid }
+            }
+            else ->
+                fail("$validated")
+        }
     }
 
     @Test
@@ -156,38 +215,64 @@ class BasicsTest {
         val validated =
             validMap("Oops") zipWith validMap("Oops") zipWith validFlat("Oops flat") map { s1, s2, s3 -> s1 + s2 + s3 }
 
-        assertTrue { validated.valid }
-        assertEquals("strstr" + "strstr" + "strstr", validated.value)
+        when (validated) {
+            is Valid<String, List<String>> -> {
+                assertTrue { validated.valid }
+            }
+            else ->
+                fail("$validated")
+        }
     }
 
     @Test
     fun zipInvalids() {
         val errors = validMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
 
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 1)
-        assertContains(errors.error, "Oops flat")
+        when (errors) {
+            is Invalid<String, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 1)
+                assertContains(errors.error, "Oops flat")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
     fun zipBothInvalids() {
-        val errors = invalidMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 -> s1 + s2 }
+        val errors =
+            invalidMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 ->
+                listOf(s1, s2)
+            }
 
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 2)
-        assertContains(errors.error, "Oops flat")
-        assertContains(errors.error, "Oops")
+        when (errors) {
+            is Invalid<*, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 2)
+                assertContains(errors.error, "Oops flat")
+                assertContains(errors.error, "Oops")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
     fun zipZipInvalids02() {
         val errors =
             invalidFlat("Oops flat") zipWith validFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
+        when (errors) {
+            is Invalid<*, List<String>> -> {
 
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 2)
-        assertContains(errors.error, "Oops flat")
-        assertContains(errors.error, "Oops")
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 2)
+                assertContains(errors.error, "Oops flat")
+                assertContains(errors.error, "Oops")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -196,11 +281,17 @@ class BasicsTest {
             (invalidFlat("Oops flat") zipWith invalidMap("Oops") zipWith validFlat("Oops flat")) map { s1, s2, s3 ->
                 s1 + s2 + s3
             }
+        when (errors) {
+            is Invalid<*, List<String>> -> {
 
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 2)
-        assertContains(errors.error, "Oops flat")
-        assertContains(errors.error, "Oops")
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 2)
+                assertContains(errors.error, "Oops flat")
+                assertContains(errors.error, "Oops")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -208,8 +299,14 @@ class BasicsTest {
         val errors =
             validMap("Oops") zipWith invalidFlat("Oops flat") zipWith invalidMap("Oops") map { s1, s2, s3 -> s1 + s2 + s3 }
 
-        assertThat(errors.valid).isFalse
-        assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+        when (errors) {
+            is Invalid<*, List<String>> -> {
+                assertThat(errors.valid).isFalse
+                assertThat(errors.error).hasSize(2).anyMatch { "Oops flat" == it }.anyMatch { "Oops" == it }
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
@@ -219,28 +316,38 @@ class BasicsTest {
         val errors = zipper2 map { s1, s2, s3 ->
             s1 + s2 + s3
         }
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 3)
-        assertContains(errors.error, "0")
-        assertContains(errors.error, "1")
-        assertContains(errors.error, "2")
+        when (errors) {
+            is Invalid<*, List<String>> -> {
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 3)
+                assertContains(errors.error, "0")
+                assertContains(errors.error, "1")
+                assertContains(errors.error, "2")
+            }
+            else ->
+                fail("$errors")
+        }
 
     }
 
     @Test
     fun zipInvalidsFlip() {
         val errors = invalidMap("Oops") zipWith validFlat("Oops flat") map { s1, s2 -> s1 + s2 }
+        when (errors) {
+            is Invalid<*, List<String>> -> {
 
-        assertFalse { errors.valid }
-        assertEquals(errors.error.size, 1)
-        assertContains(errors.error, "Oops")
+                assertFalse { errors.valid }
+                assertEquals(errors.error.size, 1)
+                assertContains(errors.error, "Oops")
+            }
+            else ->
+                fail("$errors")
+        }
     }
 
     @Test
     fun twoyFour() {
-        val validThree = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validThree = validate(errorStrings) {
             valid("foo") zipWith {
                 valid(16)
             }
@@ -250,9 +357,7 @@ class BasicsTest {
 
     @Test
     fun twoByFourAgain() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo") zipWith valid(16)
         } map ::StringAndInt
         assertTrue { validFour.valid }
@@ -260,9 +365,7 @@ class BasicsTest {
 
     @Test
     fun threeByFour() {
-        val validThree = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validThree = validate(errorStrings) {
             valid("foo") zipWith {
                 valid(16)
             } zipWith {
@@ -274,9 +377,7 @@ class BasicsTest {
 
     @Test
     fun threeByFourAgain() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo").zipWith(
                 valid(16),
                 valid(true),
@@ -287,9 +388,7 @@ class BasicsTest {
 
     @Test
     fun fourbyFour() {
-        val errors = simpleErrors(empty = "") { s1, s2 ->
-            s1 + s2
-        }
+        val errors = errorStrings
         val validFour = validate(errors) {
             valid("foo") zipWith {
                 valid(16)
@@ -304,9 +403,7 @@ class BasicsTest {
 
     @Test
     fun fourbyFourA() {
-        val errors = simpleErrors(empty = "") { s1, s2 ->
-            s1 + s2
-        }
+        val errors = errorStrings
         val validFour = validate(errors) {
             valid("foo") zipWith {
                 valid(16)
@@ -319,10 +416,7 @@ class BasicsTest {
 
     @Test
     fun fourbyFourAgain() {
-        val errors = simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }
-        val validFour = validate(errors) {
+        val validFour = validate(errorStrings) {
             valid("foo").zipWith(valid(16), valid(true), valid(System.currentTimeMillis()))
         } map ::StringIntBoolAndLong
         assertTrue { validFour.valid }
@@ -330,9 +424,7 @@ class BasicsTest {
 
     @Test
     fun fiveByFive() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo") zipWith {
                 valid(16)
             } zipWith {
@@ -349,9 +441,7 @@ class BasicsTest {
 
     @Test
     fun fiveByFiveA() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo") zipWith {
                 valid(16)
             } zipWith {
@@ -368,9 +458,7 @@ class BasicsTest {
 
     @Test
     fun fiveByFiveB() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo") zipWith {
                 valid(16)
             } zipWith {
@@ -385,9 +473,7 @@ class BasicsTest {
 
     @Test
     fun fiveByFiveAgin() {
-        val validFour = validate(simpleErrors("") { s1, s2 ->
-            s1 + s2
-        }) {
+        val validFour = validate(errorStrings) {
             valid("foo").zipWith(valid(16),
                 valid(true),
                 valid(System.currentTimeMillis()),
@@ -396,4 +482,7 @@ class BasicsTest {
 
         assertTrue { validFour.valid }
     }
+
+    private fun errorString() = errors("") { s1, s2 -> s1 + s2 }
 }
+
