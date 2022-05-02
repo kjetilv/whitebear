@@ -36,7 +36,10 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
         asInternal applyViolations violations
 
     override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
-        flattenValidated(validated.toList())?.let<E, ValidatedFailed<Any>> { ValidatedFailed(it) } ?: JustValid()
+        flattenValidated(validated.toList())
+            ?.takeUnless { it == errorProcessor.empty }
+            ?.let<E, ValidatedFailed<Any>> { ValidatedFailed(it) }
+            ?: JustValid()
 
     override fun <T> Validated<T, E>.annotateInvalidated(errorProvider: () -> E): Validated<T, E> =
         when (this) {
@@ -345,10 +348,11 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
             object : Zipper1<T, R, E> {
 
                 override fun <V> map(combiner: (T, R) -> V): Validated<V, E> =
-                    ValidatedFailed(errorProcessor.combine(error, validationError))
+                    sum(validator1()).retyped()
 
-                override fun <V> flatMap(combiner: (T, R) -> Validated<V, E>): Validated<V, E> =
-                    ValidatedFailed(errorProcessor.combine(error, validationError))
+                override
+                fun <V> flatMap(combiner: (T, R) -> Validated<V, E>): Validated<V, E> =
+                    sum(validator1()).retyped()
 
                 override val sum: Validated<*, E> get() = sum(validator1())
 

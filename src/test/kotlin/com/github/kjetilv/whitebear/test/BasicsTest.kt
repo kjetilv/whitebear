@@ -242,14 +242,14 @@ class BasicsTest {
     @Test
     fun zipBothInvalids() {
         val errors =
-            invalidMap("Oops") zipWith invalidFlat("Oops flat") map { s1, s2 ->
+            invalidMap("Oops") zipWith { invalidFlat("Oops flat") } map { s1, s2 ->
                 listOf(s1, s2)
             }
 
         when (errors) {
             is Invalid<*, List<String>> -> {
                 assertFalse { errors.valid }
-                assertEquals(errors.error.size, 2)
+                assertEquals(2, errors.error.size, "List: ${errors.error}")
                 assertContains(errors.error, "Oops flat")
                 assertContains(errors.error, "Oops")
             }
@@ -337,7 +337,7 @@ class BasicsTest {
             is Invalid<*, List<String>> -> {
 
                 assertFalse { errors.valid }
-                assertEquals(errors.error.size, 1)
+                assertEquals(1, errors.error.size)
                 assertContains(errors.error, "Oops")
             }
             else ->
