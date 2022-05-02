@@ -65,6 +65,12 @@ sealed interface Validated<T, E> {
 
     infix fun valueOr(errorConsumer: (E) -> Nothing): T
 
+    infix fun applyViolations(violations: (T) -> E?): Validated<T, E>
+
+    infix fun applyViolation(violation: (T) -> E?): Validated<T, E>
+
+    infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E>
+
     val valueOrNull: T?
 
     infix fun <R> zipWith(validated1: Validated<R, E>): Zipper1<T, R, E> =

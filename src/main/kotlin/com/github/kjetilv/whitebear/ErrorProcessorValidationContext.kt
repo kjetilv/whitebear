@@ -29,11 +29,10 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
     override fun <T> validIf(value: T, test: (T) -> Boolean?): OrInvalidate<T, E> =
         ValidatedOK(value) validateThat test
 
-    override fun <T> Validated<T, E>.validIf(test: (T) -> Boolean?): OrInvalidate<T, E> =
-        asInternal validateThat test
+    override fun <T> Validated<T, E>.validIf(test: (T) -> Boolean?): OrInvalidate<T, E> = this validateThat test
 
     override fun <T> Validated<T, E>.withViolations(violations: (T) -> E?): Validated<T, E> =
-        asInternal applyViolations violations
+        this applyViolations violations
 
     override fun collect(vararg validated: Validated<*, E>): Validated<Any, E> =
         flattenValidated(validated.toList())
@@ -51,24 +50,15 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                 throw IllegalStateException("$this not supported")
         }
 
-    private val <T> Validated<T, E>.asInternal
-        get() = this as AbstractValidated<T>
-
     private abstract inner class AbstractValidated<T> : Validated<T, E> {
 
-        abstract infix fun applyViolations(violations: (T) -> E?): Validated<T, E>
-
-        abstract infix fun applyViolation(violation: (T) -> E?): Validated<T, E>
-
-        abstract infix fun validateThat(isValid: (T) -> Boolean?): OrInvalidate<T, E>
+        abstract fun <R> retyped(): AbstractValidated<R>
 
         fun sum(vararg validateds: Validated<*, E>): AbstractValidated<*> =
             flattenValidated(listOf(this) + validateds.toList())
                 ?.takeUnless { it == errorProcessor.empty }
                 ?.let<E, ValidatedFailed<T>> { ValidatedFailed(it) }
                 ?: this@AbstractValidated
-
-        abstract fun <R> retyped(): AbstractValidated<R>
     }
 
     private inner class JustValid<T> : AbstractValidated<T>(), Valid<T, E> {
@@ -168,7 +158,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                             validator0().let { validated0 ->
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1).takeIf { it.invalid }
-                                        ?.asInternal
                                         ?.retyped()
                                         ?: (validated0 flatMap { itemR ->
                                             validated1 map { itemRR ->
@@ -183,7 +172,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                                 validator1().let { validated1 ->
                                     sum(validated0, validated1)
                                         .takeIf { it.invalid }
-                                        ?.asInternal
                                         ?.retyped()
                                         ?: (validated0 flatMap { itemR ->
                                             validated1 flatMap { itemRR ->
@@ -204,7 +192,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                                             validator2().let { validated2 ->
                                                 sum(validated0, validated1, validated2)
                                                     .takeIf { it.invalid }
-                                                    ?.asInternal
                                                     ?.retyped()
                                                     ?: (validated0 flatMap { itemR ->
                                                         validated1 flatMap { itemRR ->
@@ -223,7 +210,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                                             validator2().let { validated2 ->
                                                 sum(validated0, validated1, validated2)
                                                     .takeIf { it.invalid }
-                                                    ?.asInternal
                                                     ?.retyped()
                                                     ?: (validated0 flatMap { itemR ->
                                                         validated1 flatMap { itemRR ->
@@ -252,7 +238,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                                                         validator3().let { validated3 ->
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
-                                                                ?.asInternal
                                                                 ?.retyped()
                                                                 ?: (validated0 flatMap { itemR ->
                                                                     validated1 flatMap { itemRR ->
@@ -279,7 +264,6 @@ private data class ErrorProcessorValidationContext<E>(private val errorProcessor
                                                         validator3().let { validated3 ->
                                                             sum(validated0, validated1, validated2, validated3)
                                                                 .takeIf { it.invalid }
-                                                                ?.asInternal
                                                                 ?.retyped()
                                                                 ?: (validated0 flatMap { itemR ->
                                                                     validated1 flatMap { itemRR ->
